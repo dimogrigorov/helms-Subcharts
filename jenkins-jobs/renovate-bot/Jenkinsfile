@@ -1,0 +1,55 @@
+@Library(['pipeline-toolbox']) _
+
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
+
+// Activate the debug log level
+// env.LOG_LEVEL = 'debug'
+
+def RENOVATE_CONFIG = """{
+    "onboardingPrTitle": "API-1414: Configure Renovate",
+    "commitMessagePrefix": "API-1414 [Renovate Bot]: ",
+    "gitAuthor": "Jenkins for Amadeus <jenkins-amadeus@amadeus.com>",
+    "onboardingConfig": {
+        "extends": [
+            "local>DIP/jenkins-jobs//renovate-bot/config/default"
+        ]
+    }
+}""".replaceAll('\r|\n', '')
+
+properties([
+    pipelineTriggers([cron('TZ=CET\nH 0,12 * * 5')]),
+    disableConcurrentBuilds()
+])
+
+execEnv('dockerhub.rnd.amadeus.net/registry-1-docker-io-remote/renovate/renovate:31.21.0') {
+    withCredentials([
+            string(credentialsId: 'GITHUB_COM_TOKEN', variable: 'GH_TOKEN'),
+            usernamePassword(credentialsId: 'IZ_USER', usernameVariable: 'IZ_LOGIN', passwordVariable: 'IZ_PASSWORD')
+    ]) {
+        withEnv([
+                "RENOVATE_PLATFORM=bitbucket-server",
+                "RENOVATE_ENDPOINT=https://repository.secure.ifao.net:7443",
+                "RENOVATE_USERNAME=${IZ_LOGIN}",
+                "RENOVATE_PASSWORD=${IZ_PASSWORD}",
+                "RENOVATE_CONFIG=${RENOVATE_CONFIG}",
+                "DOCKER_DOCKERHUB_RND_AMADEUS_NET_USERNAME=${IZ_LOGIN}",
+                "DOCKER_DOCKERHUB_RND_AMADEUS_NET_PASSWORD=${IZ_PASSWORD}",
+                "MAVEN_REPOSITORY_RND_AMADEUS_NET_USERNAME=${IZ_LOGIN}",
+                "MAVEN_REPOSITORY_RND_AMADEUS_NET_PASSWORD=${IZ_PASSWORD}",
+                "NPM_REPOSITORY_RND_AMADEUS_NET_USERNAME=${IZ_LOGIN}",
+                "NPM_REPOSITORY_RND_AMADEUS_NET_PASSWORD=${IZ_PASSWORD}",
+                "GITHUB_COM_TOKEN=${GH_TOKEN}",
+                "LOG_LEVEL=DEBUG"
+        ]) {
+            execStage('keycloak-cicd') {
+                sh 'renovate DIP/keycloak-cicd'
+            }
+            execStage('jenkins-jobs') {
+                sh 'renovate DIP/jenkins-jobs'
+            }
+            execStage('openshift-infra') {
+                sh 'renovate DIP/openshift-infra'
+            }
+        }
+    }
+}

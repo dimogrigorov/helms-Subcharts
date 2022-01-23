@@ -1,0 +1,52 @@
+@Library(['pipeline-toolbox', 'tne_library']) _
+
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
+
+// Activate the debug log level
+// env.LOG_LEVEL = 'debug'
+
+properties([
+    disableConcurrentBuilds(),
+    parameters([
+        string(name: 'JIRA_KEY', defaultValue: '', description: 'The Jira Key of the deployment to clean', trim: true)
+    ])
+])
+
+env.BUILD_IMAGE = 'dockerhub.rnd.amadeus.net/dga-docker-validated-adt/acs_praxis/jenkins-slave-oc44:13.0.1'
+def envInputs = [
+    timeout: 20,
+    dockerExtraArgs: '--network host --add-host=repository.secure.ifao.net:172.19.209.95 --add-host=nexus.secure.ifao.net:172.19.208.84',
+    jenkinsCredId: 'APP_RND_CTS',
+    kibanaCredentialsId: 'APP_RND_CTS'
+]
+
+execEnv(env.BUILD_IMAGE, envInputs) {
+
+    def OS_API_URL = 'https://api.openshift.sofia.ifao.net:6443'
+    def releaseName
+
+    execStage('Check Parameter') {
+        logInfo { "JIRA_KEY set to: ${params.JIRA_KEY}" }
+        if (params.JIRA_KEY) {
+            releaseName = "keycloak-${params.JIRA_KEY.toLowerCase()}"
+        } else {
+            error 'The parameter is mandatory'
+        }
+        currentBuild.description = "Cleaning project for ${params.JIRA_KEY}"
+    }
+
+    execStage('Uninstall Helm Release') {
+        withCredentials([[$class: 'StringBinding', credentialsId: 'OC_DIP_JENKINS_SA_TOKEN', variable: 'OS_TOKEN']]) {
+            sh "oc login ${OS_API_URL} --insecure-skip-tls-verify " + '--token=${OS_TOKEN}'
+            def helmReleaseStatus = sh script: "helm status ${releaseName}", returnStatus: true
+            if (helmReleaseStatus == 0) {
+                logInfo { "Uninstalling Helm release ${releaseName}" }
+                sh "helm uninstall ${releaseName}"
+            } else {
+                logInfo { "No Helm release found" }
+            }
+            sh 'oc logout'
+        }
+    }
+
+}

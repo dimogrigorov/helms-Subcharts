@@ -1,0 +1,112 @@
+replicas: 3
+
+image:
+  repository: nexus.secure.ifao.net:8443/ifao/dip/keycloak
+  tag: "@version@"
+
+podSecurityContext:
+  fsGroup: 1000680000
+
+securityContext:
+  runAsUser: 1000680000
+  runAsNonRoot: true
+
+extraEnv: |
+  - name: KEYCLOAK_USER_FILE
+    value: /secrets/keycloak-admin-creds/username
+  - name: KEYCLOAK_PASSWORD_FILE
+    value: /secrets/keycloak-admin-creds/password
+  - name: DB_VENDOR
+    value: oracle
+  - name: DB_ADDR
+    value: prodracpci.secure.ifao.net
+  - name: DB_PORT
+    value: '1677'
+  - name: DB_DATABASE
+    value: keycloak_prod_srv.secure.ifao.net
+  - name: DB_USER_FILE
+    value: /secrets/keycloak-oracle-db-creds/username
+  - name: DB_PASSWORD_FILE
+    value: /secrets/keycloak-oracle-db-creds/password
+  - name: PROXY_ADDRESS_FORWARDING
+    value: 'true'
+  - name: JGROUPS_DISCOVERY_PROTOCOL
+    value: dns.DNS_PING
+  - name: JGROUPS_DISCOVERY_PROPERTIES
+    value: 'dns_query={{ include "keycloak.serviceDnsName" . }}'
+  - name: CACHE_OWNERS_COUNT
+    value: '2'
+  - name: CACHE_OWNERS_AUTH_SESSIONS_COUNT
+    value: '2'
+  - name: KEYCLOAK_STATISTICS
+    value: all
+  - name: JAVA_OPTS
+    value: >-
+      -XX:+UseContainerSupport
+      -XX:MaxRAMPercentage=50.0
+      -Djava.net.preferIPv4Stack=true
+      -Djboss.modules.system.pkgs=$JBOSS_MODULES_SYSTEM_PKGS
+      -Djava.awt.headless=true
+      -Dkeycloak.profile.feature.upload_scripts=enabled
+      -Dkeycloak.import=/opt/realms/realm-openapi-production.json,/opt/realms/realm-cytricng.json
+
+resources:
+  limits:
+    cpu: "800m"
+    memory: "4Gi"
+  requests:
+    cpu: "200m"
+    memory: "1Gi"
+
+route:
+  enabled: true
+  host: dip-production.apps.openshift.secure.ifao.net
+
+extraVolumes: |
+  - name: keycloak-certificate
+    secret:
+      defaultMode: 420
+      secretName: keycloak-cert
+  - name: keycloak-admin-creds
+    secret:
+      secretName: keycloak-admin-creds
+  - name: keycloak-oracle-db-creds
+    secret:
+      secretName: keycloak-oracle-db-creds
+
+extraVolumeMounts: |
+  - mountPath: /etc/x509/https
+    name: keycloak-certificate
+    readOnly: true
+  - name: keycloak-admin-creds
+    mountPath: /secrets/keycloak-admin-creds
+    readOnly: true
+  - name: keycloak-oracle-db-creds
+    mountPath: /secrets/keycloak-oracle-db-creds
+    readOnly: true
+
+livenessProbe: |
+  httpGet:
+    path: /auth/
+    port: http
+  initialDelaySeconds: 500
+  timeoutSeconds: 5
+  periodSeconds: 10
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe: |
+  httpGet:
+    path: /auth/realms/master
+    port: http
+  initialDelaySeconds: 300
+  timeoutSeconds: 1
+  periodSeconds: 10
+  successThreshold: 1
+  failureThreshold: 6
+
+postgresql:
+  enabled: false
+
+serviceMonitor:
+  enabled: true

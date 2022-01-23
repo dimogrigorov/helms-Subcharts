@@ -1,0 +1,333 @@
+@Library(['pipeline-toolbox', 'tne_library']) _
+
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
+
+// Activate the debug log level
+// env.LOG_LEVEL = 'debug'
+
+properties([
+    disableConcurrentBuilds()
+])
+
+env.BUILD_IMAGE = 'dockerhub.rnd.amadeus.net/dga-docker-validated-adt/acs_praxis/jenkins-slave:8.2.1'
+def envInputs = [
+    timeout: 60,
+    dockerExtraArgs: '--network host --add-host=repository.secure.ifao.net:172.19.209.95 --add-host=nexus.secure.ifao.net:172.19.208.84',
+    jenkinsCredId: 'APP_RND_CTS',
+    kibanaCredentialsId: 'APP_RND_CTS'
+]
+
+execEnv(env.BUILD_IMAGE, envInputs) {
+
+  currentBuild.result = 'SUCCESS'
+  def gradleProperties
+  def workbenchYaml
+  def computedVersion
+  def jiraKey = ''
+  def proposeEphemeral
+  def deployEphemeral
+  def ephemeralReleaseName
+  def buildDockerLatest
+  def helmChartVersion
+  def JIRA_KEY_PATTERN = /((?<!([A-Z]{1,10})-?)[A-Z]+-\d+)/
+  def RELEASE_KEY_PATTERN = /release\/(.*)/
+  def ARTIFACTORY_DOCKER_IMAGE = 'dockerhub.rnd.amadeus.net/docker-built-cts-nce/ifao/keycloak'
+  def NEXUS_DOCKER_IMAGE = 'nexus.secure.ifao.net:8443/ifao/dip/keycloak'
+  def NEXUS_DOCKER_IMAGE_LATEST = 'nexus.secure.ifao.net:8443/latest/ifao/dip/keycloak'
+  def NEXUS_MAVEN_SNAPSHOT_REPO = 'capi-snapshot-maven2'
+  def NEXUS_MAVEN_RELEASE_REPO = 'capi-release-maven2'
+
+  try {
+    execStage('Setup') {
+      logInfo { 'Clean the current directory' }
+      deleteDir()
+
+      logInfo { 'Checkout the project' }
+      retry(2) {
+        checkoutGit()
+      }
+
+      // Because of some setup in the Jenkins master, in case of a merge commit for a PR build the author will be set to Jenkins <nobody@nowhere>.
+      // This will fail the push because of the hook "You can only push your own commits in this repository"
+      // So let's update it if needed!
+      if (isPullRequest()) {
+        amendCommitAuthorIfNeeded()
+      }
+
+      gradleProperties = readProperties file: 'gradle.properties'
+      workbenchYaml = readYaml file: 'workbench.yaml'
+
+      if (!isDefaultBranch() && !isReleaseBranch() && !isPullRequest()) {
+        def jiraKeyMatcher = env.BRANCH_NAME =~ JIRA_KEY_PATTERN
+        if (jiraKeyMatcher.find()) {
+          // Get the first match of the first group
+          jiraKey = jiraKeyMatcher[0][0]
+          proposeEphemeral = true
+          logInfo { "Jira Key ${jiraKey} detected from the branch name" }
+        } else {
+          logError { 'When not on master, on release branch, nor on a pull request, a Jira key is mandatory in the branch name to compute a valid SemVer version' }
+          error "No Jira key detected from the branch name (${env.BRANCH_NAME}), hence failing the build"
+        }
+      }
+    }
+
+    execStage('Check Ephemeral Deployment') {
+      deployEphemeral = false
+      if (proposeEphemeral) {
+        ephemeralReleaseName = "keycloak-${jiraKey.toLowerCase()}"
+        logInfo { 'Checking existing releases' }
+        String releasesList
+        withCredentials([string(credentialsId: 'OC_DIP_JENKINS_SA_TOKEN', variable: 'OC_TOKEN')]) {
+          sh 'oc login https://api.openshift.sofia.ifao.net:6443 --insecure-skip-tls-verify --token=${OC_TOKEN}'
+          releasesList = sh script: 'helm list --namespace dip --all --short', returnStdout: true
+          releasesList = releasesList.trim()
+          sh 'oc logout'
+        }
+        logInfo { "List of existing releases:\n${releasesList}" }
+        if (releasesList.contains(ephemeralReleaseName)) {
+          logInfo { "Helm release ${ephemeralReleaseName} already exists, hence ephemeral deployment will be done" }
+          deployEphemeral = true
+        } else {
+          logInfo { "Helm release ${ephemeralReleaseName} does not exist, hence proposing an ephemeral deployment" }
+          try {
+            def inputMessage = """\
+                You can deploy this as an ephemeral Helm release in OpenShift. The Helm release name will be ${ephemeralReleaseName}.
+  
+                Tick the checkbox and click on the Proceed button if you want to deploy in OpenShift.
+                Do not tick the checkbox and click on the Proceed button if it is not needed.
+  
+                N.B. 1: If no input is provided in 2 minutes, no deployment will be performed.
+                N.B. 2: Please note that you will need to uninstall manually the Helm release when it is not more needed.
+                N.B. 3: Clicking on the Abort button will abort the build!""".stripIndent()
+            timeout(time: 2, unit: 'MINUTES') {
+              deployEphemeral = input(
+                  id: 'deploy-ephemeral',
+                  message: 'OpenShift Ephemeral Deployment',
+                  parameters: [booleanParam(defaultValue: false, description: inputMessage, name: 'I want to perform an Ephemeral Deployment')]
+              )
+              if (deployEphemeral) {
+                logInfo { "Ephemeral deployment has been selected, hence Helm release ${ephemeralReleaseName} will be deployed" }
+              } else {
+                logInfo { 'Ephemeral deployment has not been selected' }
+              }
+            }
+          } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+            logWarning { 'No input received, hence ephemeral deployment will be skipped' }
+          }
+        }
+      } else {
+        logWarning { 'We cannot detect the Jira Key from the branch name, hence ephemeral deployment will be skipped' }
+        Utils.markStageSkippedForConditional(STAGE_NAME)
+      }
+    }
+
+    execStage('Version Computation') {
+      logInfo { 'Computing the new version' }
+      def branchingModel  = [
+          'release/.*': '@{VERSION}',
+          'master': '@{VERSION}-master',
+          'PR-.*': '@{VERSION}-@{BRANCH}',
+          '.*': "@{VERSION}-${jiraKey.toLowerCase()}"
+      ]
+      def currentVersion = gradleProperties['version']
+      def baseVersion = currentVersion.minus('-SNAPSHOT')
+      logDebug { 'currentVersion: ' + currentVersion + ' / baseVersion: ' + baseVersion }
+      computedVersion = newVersion([versionType: 'sem', version_base: baseVersion, branchingModel: branchingModel])
+
+      logInfo { "Update of the version in gradle.properties with the computed version: ${computedVersion}." }
+      sh "sed -i 's/${currentVersion}/${computedVersion}/' gradle.properties"
+    }
+
+    execStage('Docker image build') {
+      logInfo { 'Collect the Open API dependencies and prepare the Helm chart deployment configuration' }
+      sh './gradlew build'
+
+      logInfo { 'Build of the Docker image' }
+      // Build an additional latest tag for Docker images on the default branch
+      buildDockerLatest = isDefaultBranch()
+      def artifactoryImageTag = "-t ${ARTIFACTORY_DOCKER_IMAGE}:${computedVersion}"
+      def nexusImageTag = "-t ${NEXUS_DOCKER_IMAGE}:${computedVersion}"
+      def nexusImageLatestTag = buildDockerLatest ? "-t ${NEXUS_DOCKER_IMAGE_LATEST}:latest" : ''
+      sh "docker build ${artifactoryImageTag} ${nexusImageTag} ${nexusImageLatestTag} ."
+    }
+
+    execStage('Helm Chart lint') {
+      logInfo { 'Unzip the Helm chart deployment configuration' }
+      sh './gradlew unzipDeploymentConfiguration'
+      def deploymentConfigurationPath = "build/helm/deployment-configuration-${computedVersion}"
+      def chartProperties = readProperties file: "${deploymentConfigurationPath}/charts-versions.properties"
+      helmChartVersion = chartProperties['keycloak']
+
+      logInfo { 'Linting the helm chart with values' }
+      sh 'mkdir -p build/helm/charts'
+      sh 'helm repo add codecentric https://codecentric.github.io/helm-charts'
+      sh "helm pull codecentric/keycloak --version ${helmChartVersion} --destination build/helm/charts"
+
+      logInfo { 'Linting the helm chart with ephemeral values' }
+      sh "helm lint build/helm/charts/keycloak-${helmChartVersion}.tgz --values ${deploymentConfigurationPath}/keycloak/values-ephemeral.yaml"
+
+      logInfo { 'Linting the helm chart with master values' }
+      sh "helm lint build/helm/charts/keycloak-${helmChartVersion}.tgz --values ${deploymentConfigurationPath}/keycloak/values-master.yaml"
+
+      logInfo { 'Linting the helm chart with qa values' }
+      sh "helm lint build/helm/charts/keycloak-${helmChartVersion}.tgz --values ${deploymentConfigurationPath}/keycloak/values-qa.yaml"
+
+      logInfo { 'Linting the helm chart with staging values' }
+      sh "helm lint build/helm/charts/keycloak-${helmChartVersion}.tgz --values ${deploymentConfigurationPath}/keycloak/values-staging.yaml"
+
+      logInfo { 'Linting the helm chart with production values' }
+      sh "helm lint build/helm/charts/keycloak-${helmChartVersion}.tgz --values ${deploymentConfigurationPath}/keycloak/values-production.yaml"
+
+      logInfo { 'Linting the helm chart with toc values' }
+      sh "helm lint build/helm/charts/keycloak-${helmChartVersion}.tgz --values ${deploymentConfigurationPath}/keycloak/values-toc.yaml"
+    }
+
+    execStage('Publication') {
+      logInfo { 'Git commit and tag' }
+      completeBuild(computedVersion, ['tagOnlyOnce': true, 'message': "Build of version ${computedVersion}"])
+
+      logInfo { 'Push the Docker image in Artifactory' }
+      List dockerlist = [[
+          dockertag: "${ARTIFACTORY_DOCKER_IMAGE}:${computedVersion}",
+          artifactrepo: 'docker-built-cts-nce'
+      ]]
+      def buildInfo = uploadDockerToArtifactory(dockerlist)
+      buildInfo.name = 'dip-keycloak-cicd'
+      buildInfo.number = computedVersion
+
+      logInfo { 'Publish the Helm Chart values in Artifactory' }
+      def uploadSpec = """{
+        "files": [
+          {
+            "pattern": "build/helm/values/*.yaml",
+            "target": "blueprint-tne-generic-built-cts-nce/ifao/keycloak/${computedVersion}/"
+          }
+        ]
+      }"""
+      uploadToArtifactory(uploadSpec, buildInfo)
+      uploadToArtifactory(buildInfo)
+
+      withCredentials([usernamePassword(credentialsId: 'NEXUS_OPENAPI_USER', usernameVariable: 'NX_USER', passwordVariable: 'NX_PASSWORD')]) {
+        notifier([key: "Nexus publication (Docker image) - ${env.BRANCH_NAME}",
+            message: "Publication of version ${computedVersion} in Nexus",
+            urlInput: "https://nexus.secure.ifao.net:8443/#browse/browse:ifao-release-docker:v2%2Fifao%2Fdip%2Fkeycloak%2Ftags%2F${computedVersion}"]) {
+          logInfo { 'Push the Docker image in Nexus' }
+          sh 'docker login -u ${NX_USER} -p ${NX_PASSWORD} nexus.secure.ifao.net:8443'
+          sh "docker push ${NEXUS_DOCKER_IMAGE}:${computedVersion}"
+        }
+
+        if (buildDockerLatest) {
+          notifier([key: "Nexus publication (Docker latest image) - ${env.BRANCH_NAME}",
+              message: "Publication of version latest in Nexus",
+              urlInput: 'https://nexus.secure.ifao.net:8443/#browse/browse:ifao-latest-docker:v2%2Flatest%2Fifao%2Fdip%2Fkeycloak%2Ftags%2Flatest']) {
+            logInfo { 'Push the latest Docker image in Nexus' }
+            sh "docker push ${NEXUS_DOCKER_IMAGE_LATEST}:latest"
+          }
+        }
+
+        def nexusMavenRepository = isDefaultBranch() || isReleaseBranch() ? NEXUS_MAVEN_RELEASE_REPO : NEXUS_MAVEN_SNAPSHOT_REPO
+        def nexusOptions = '-PnexusUsername=${NX_USER} -PnexusPassword=${NX_PASSWORD}' + " -PnexusMavenRepository=${nexusMavenRepository}"
+        notifier([key: "Nexus publication (Deployment Configuration) - ${env.BRANCH_NAME}",
+            message: "Publication of version ${computedVersion} in Nexus",
+            urlInput: "https://nexus.secure.ifao.net:8443/#browse/browse:${nexusMavenRepository}:com%2Famadeus%2Fcytric%2Fdip%2Fkeycloak-cicd%2F${computedVersion}"]) {
+          sh "./gradlew publish ${nexusOptions} -PisCI"
+        }
+      }
+    }
+
+    execStage('Post Build') {
+      execParallel([
+        'Deployment': {
+          execStage('Deployment') {
+            if (isDefaultBranch() || deployEphemeral || isReleaseBranch()) {
+              // Compute release name
+              def releaseName = ''
+              if (isDefaultBranch()) {
+                releaseName = 'keycloak'
+              } else if (isReleaseBranch()) {
+                // branch name is expected to follow semver branching name, ie release/1.2
+                // from that branch name, release name will be computed as follow: keycloak-release-1-2
+                def releaseKeyMatcher = env.BRANCH_NAME =~ RELEASE_KEY_PATTERN
+
+                def releaseKey = ''
+                if (releaseKeyMatcher.find()) {
+                  // Get the first match of the second group
+                  releaseKey = releaseKeyMatcher[0][1].replaceAll('\\.','-')
+                } else {
+                  logError { "Could not compute a release key from the branch name for release branch ${env.BRANCH_NAME}" }
+                }
+                releaseName = 'keycloak-release-' + releaseKey
+              } else {
+                releaseName = ephemeralReleaseName
+              }
+
+              // release doesn't have specific config, will use ephemeral for now
+              def helmConf = isDefaultBranch() ? 'master' : 'ephemeral'
+              def latestRoute = isDefaultBranch()
+              def jobInputs = [
+                  'ENVIRONMENT': 'FEATURE',
+                  'APPLICATION_VERSION': computedVersion,
+                  'RELEASE_NAME': releaseName,
+                  'HELM_CONF': helmConf,
+                  'LATEST_ROUTE': latestRoute
+              ]
+              notifier([key: "Deployment in OpenShift (Helm release ${releaseName}) - ${env.BRANCH_NAME}",
+                  message: "Deployment of Keycloak version ${computedVersion} in OpenShift",
+                  urlInput: "https://console-openshift-console.apps.openshift.sofia.ifao.net/helm-releases/ns/dip/release/${releaseName}/"]) {
+                logInfo { "Trigger Keycloak deployment job in OpenShift using inputs ${jobInputs}" }
+                deployToIfaoOpenShift('keycloak/keycloak-deploy', jobInputs, 20)
+              }
+            } else {
+              logInfo { 'Deployment is not configured' }
+              Utils.markStageSkippedForConditional(STAGE_NAME)
+            }
+          }
+        },
+        'Security Assessment': {
+          execStage('Security Assessment') {
+            if (isDefaultBranch() || isReleaseBranch() || isPullRequest()) {
+              logInfo { 'Security Assessment' }
+              def assessSecurityOptions = [
+                  common: [
+                      team: workbenchYaml.team,
+                      product: 'keycloak-cicd',
+                      version: computedVersion,
+                      phase: 'dev',
+                      yacUuid: workbenchYaml.yac_uuid
+                  ],
+                  cveInspector: [[
+                      images: ["ifao/keycloak:${computedVersion}"],
+                      zones: ['docker-built-cts']
+                  ]],
+                  reporting: [
+                      jenkinsArchive: true,
+                  ]
+              ]
+              if (isDefaultBranch() || isReleaseBranch()) {
+                assessSecurityOptions.reporting << [
+                    watchtower: [
+                        artifactoryRepository: 'tne-security',
+                        credentialsId: 'IZ_USER'
+                    ]
+                ]
+              }
+              assessSecurity(assessSecurityOptions)
+            } else {
+              logInfo { 'The Black Duck analysis is performed only for the main branch, release branches and pull requests' }
+              Utils.markStageSkippedForConditional(STAGE_NAME)
+            }
+          }
+        }
+      ])
+    }
+  } catch (err) {
+    logException({ 'An exception has been caught' }, err)
+    currentBuild.result = 'FAILURE'
+    error 'Aborting the build'
+  } finally {
+    execStage('Clean Up') {
+      cleanWs()
+    }
+  }
+
+}
