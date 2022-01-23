@@ -1,0 +1,74 @@
+filebeat.registry_flush: 1s
+
+queue.mem:
+  events: 65535
+  flush.min_events: 0
+  flush.timeout: 0s
+
+filebeat.inputs:
+
+- type: log
+  enabled: true
+  paths:
+    - /logs/NotifyLog.json
+
+  exclude_lines: [ '^$\n|^(\s|\()' ]
+
+  json.message_key: "message"
+  json.keys_under_root: true
+  json.overwrite_keys: true
+  json.add_error_key: true
+
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+
+setup.template:
+  enabled: true
+  name: "ccbdn-not-used"
+  pattern: "ccbdn-not-used.*"
+  overwrite: false
+
+setup.template.settings:
+  index.number_of_shards: 1
+  index.codec: best_compression
+  _source.enabled: false
+
+output.elasticsearch:
+  enabled: true
+  hosts: ["es.sofia.ifao.net:9200"]
+  escape_html: true
+  index: "ccbd.notify.%{+yyyy.ww}"
+  bulk_max_size: 500
+  backoff.init: 10s
+  backoff.max: 300s
+  timeout: 300
+
+processors:
+  - add_host_metadata: ~
+  - decode_json_fields:
+      fields: ["message"]
+      process_array: true
+  - drop_fields:
+      fields: ["log"]
+  - rename:
+      fields:
+      - from: "thread_name"
+        to: "thread"
+      - from: "logger_name"
+        to: "logger"
+      - from: "message"
+        to: "log"
+      ignore_missing: true
+      fail_on_error: false
+  - drop_fields:
+      fields: ["prospector", "input", "beat", "source", "id", "host.architecture", "host.containerized", "host.os", "level_value"]
+  - drop_event:
+      when:
+        contains:
+          log: ""
+     
+
+logging.level: error
+logging.selectors: ["*"]
+xpack.monitoring.enabled: false

@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ccbd-master.fullname" . }}
+  labels:
+    {{- include "ccbd-master.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ccbd-master.selectorLabels" . | nindent 6 }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+    type: RollingUpdate
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "ccbd-master.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: "{{ .Values.serviceAccount.name }}"
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: filebeat
+          image: {{ .Values.filebeat.image }}
+          args: [
+            "-c", "/etc/filebeat.yml"
+          ]
+          securityContext:
+            runAsUser: 1000
+          volumeMounts:
+            - mountPath: /etc/filebeat.yml
+              name: filebeat-config-{{ include "ccbd-master.fullname" . }}
+              subPath: filebeat.yml
+              readOnly: true
+            - mountPath: /logs
+              name: logs
+          resources:
+            {{- toYaml .Values.filebeat.resources | nindent 12 }}
+        - name: {{ .Chart.Name }}
+          env:
+          {{- range $k, $v := .Values.env }}
+          - name: {{ $k }}
+            value: "{{ $v }}"
+          {{- end }}
+          - name: spring.security.oauth2.client.registration.keycloak.client-secret
+            valueFrom:
+              secretKeyRef:
+                name: ccbd-cred
+                key: keycloak
+          - name: ssl.cloud-config.truststore-password
+            valueFrom:
+              secretKeyRef:
+                name: ccbd-cred
+                key: truststore-password
+          - name: ssl.keycloak.truststore-password
+            valueFrom:
+              secretKeyRef:
+                name: ccbd-cred
+                key: truststore-password
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: ccbd-web
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          {{- range $v1 := .Values.volumeMounts }}
+            - mountPath: {{ $v1.mountPath }}
+              name: {{ $v1.name }}
+              {{- if $v1.readOnly }}
+              readOnly: {{ $v1.readOnly }}
+              {{- end }}
+          {{- end }}
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: filebeat-config-{{ include "ccbd-master.fullname" . }}
+        configMap:
+          name: filebeat-config-{{ include "ccbd-master.fullname" . }}
+          defaultMode: 0644
+      - name: logs
+        emptyDir: {}
+      - name: mom
+        secret:
+          defaultMode: 420
+          secretName: mom-truststore
+      - name: ccbd-private-key
+        secret:
+          defaultMode: 400
+          secretName: ccbd-private-key
+      - name: ccbd-keystore
+        secret:
+          defaultMode: 420
+          secretName: ccbd-keystore
+      - configMap:
+          defaultMode: 420
+          name: ext-endpoints-truststore
+        name: ext-trustore
+      - configMap:
+          defaultMode: 420
+          name: obj-exchange-xsd
+        name: obj-exchange
+      - name: all-in-one
+        projected:
+          sources:
+          - configMap:
+              name: kat-keystore
+          - configMap:
+              name: kat-trusted-keystore
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

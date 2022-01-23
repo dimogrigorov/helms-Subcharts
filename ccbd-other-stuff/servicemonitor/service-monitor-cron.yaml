@@ -1,0 +1,21 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: get-servicemonitor-token
+  namespace: monitoring
+spec:
+  schedule: "0 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: ccbd-service-monitor
+          imagePullSecrets:
+          - name: nexus
+          containers:
+          - name: kubectl
+            image: nexus.secure.ifao.net:9343/ccbd-servicemonitor-cron:0.3
+            env:
+              - name: PASSWORD
+                value: set-keycloak-pass
+          restartPolicy: OnFailure

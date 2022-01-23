@@ -1,0 +1,25 @@
+team: 'TRU-TCH-COR-RDT-TEC'
+
+projectName: notify
+projectKey: notify
+
+docker_PrepareRelease_skip: true
+docker_Setup_skip: true
+docker_AssessSecurity_skip: true
+
+use_gradle_wrapper: true
+gradle_codechecks_ignore_failure: true
+gradle_integrationtest_skip: true
+gradle_codeanalysis_skip: true
+gradle_completebuild_skip: true
+
+gradle_checkout_retry: 1
+gradle_buildandtest_retry: 1
+sonarDifferentialPRScan: true
+#troubleshootUrl: https://rndwww.nce.amadeus.net/confluence/x/1sX6Vw # override the default Amadeus TroubleShooting page
+
+env:
+  BITBUCKET_PROJECT: mom
+  BITBUCKET_REPOSITORY: notify
+  BAS_ID: 350
+  PROTECODE_CREDENTIALS_ID: PROTECODE_CREDENTIALS_CCBD

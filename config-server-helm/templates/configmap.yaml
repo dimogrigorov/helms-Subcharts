@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebeat-config-{{ include "chart.fullname" . }}
+data:
+  filebeat.yml: |
+{{- toYaml .Values.configMaps.filebeat | nindent 4 }}

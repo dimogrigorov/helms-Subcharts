@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: ccbd
+    release: prometheus-operator
+  name: ccbd-mom-master-service-monitor
+spec:
+  endpoints:
+  - bearerTokenSecret:
+      key: token
+      name: ccbd-servicemonitor-token
+    interval: 30s
+    path: /actuator/prometheus
+    port: ccbd-web
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: true
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      app: ccbd
+      release: master

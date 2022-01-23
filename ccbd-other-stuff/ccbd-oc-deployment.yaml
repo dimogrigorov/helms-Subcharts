@@ -1,0 +1,170 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ccbd
+    release: master
+  name: ccbd-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ccbd
+      release: master
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: ccbd
+        release: master
+    spec:
+      serviceAccountName: filebeat
+      containers:
+      - name: filebeat
+        image: docker.elastic.co/beats/filebeat:6.8.13
+        args: [
+          "-c", "/etc/filebeat.yml", "-e"
+        ]
+#        command: ["filebeat", "--strict.perms=false"]
+        securityContext:
+          runAsUser: 1000
+        volumeMounts:
+          - mountPath: /etc/filebeat.yml
+            name: config-filebeat
+            subPath: filebeat.yml
+          - mountPath: /logs
+            name: logs
+          - mountPath: /var/run/secrets/tokens
+            name: sa-token
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      - env:
+        - name: spring.cloud.config.uri
+          value: https://config-server.config:8888/
+        - name: spring.profiles.active
+          value: test
+        - name: spring.security.oauth2.client.provider.keycloak.token-uri
+          value: https://keycloak-api-1260-dip.apps.openshift.sofia.ifao.net/auth/realms/cytricNG/protocol/openid-connect/token
+        - name: spring.security.oauth2.client.registration.keycloak.authorization-grant-type
+          value: client_credentials
+        - name: spring.security.oauth2.client.registration.keycloak.client-id
+          value: ccbd
+        - name: spring.security.oauth2.client.registration.keycloak.client-secret
+          value: b04acfca-17e5-402b-bc63-ee91bc819411
+        - name: ssl.cloud-config.truststore
+          value: file:/opt/truststore/mom.p12
+        - name: ssl.cloud-config.truststore-password
+          value: Amadeus06
+        - name: ssl.keycloak.truststore
+          value: file:/opt/truststore/mom.p12
+        - name: ssl.keycloak.truststore-password
+          value: Amadeus06
+        - name: logging.file.path
+          value: /var/log/ccbd
+        image: nexus.secure.ifao.net:9343/ccbd-master:21.08.350
+        imagePullPolicy: Always
+        name: ccbd
+        ports:
+        - containerPort: 8080
+          name: ccbd-web
+          protocol: TCP
+        resources:
+           requests:
+             memory: "256Mi"
+             cpu: "250m"
+           limits:
+             memory: "4096Mi"
+             cpu: "2"
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/run/secrets/tokens
+          name: sa-token
+        - mountPath: /var/log/ccbd
+          name: logs
+        - mountPath: /opt/private
+          name: ccbd-private-key
+          readOnly: true
+        - mountPath: /opt/truststore
+          name: mom
+          readOnly: true
+        - mountPath: /opt/keystore
+          name: ccbd-keystore
+          readOnly: true
+        - mountPath: /opt/ext-trustore
+          name: ext-trustore
+          readOnly: true
+        - mountPath: /opt/exchange
+          name: obj-exchange
+          readOnly: true
+        - name: all-in-one
+          mountPath: /opt/kat
+          readOnly: true
+      imagePullSecrets:
+      - name: nexus
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 0
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: config-filebeat
+        configMap:
+          name: filebeat-config
+          defaultMode: 0640
+      - name: logs
+        emptyDir: {}
+      - name: sa-token
+        secret:
+          secretName: filebeat-token-hdj79
+          defaultMode: 0640
+      - name: mom
+        secret:
+          defaultMode: 420
+          secretName: mom-truststore
+      - name: ccbd-private-key
+        secret:
+          defaultMode: 400
+          secretName: ccbd-private-key
+      - name: ccbd-keystore
+        secret:
+          defaultMode: 420
+          secretName: ccbd-keystore
+      - configMap:
+          defaultMode: 420
+          name: ext-endpoints-truststore
+        name: ext-trustore
+      - configMap:
+          defaultMode: 420
+          name: obj-exchange-xsd
+        name: obj-exchange
+      - name: all-in-one
+        projected:
+          sources:
+          - configMap:
+              name: kat-keystore
+          - configMap:
+              name: kat-trusted-keystore
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccbd-master
+spec:
+  selector:
+    app: ccbd
+    release: master
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: ccbd-web

@@ -1,0 +1,56 @@
+
+@Library(['pipeline-framework','pipeline-toolbox']) _
+properties([disableConcurrentBuilds()])
+
+def JAR_FILE = null
+
+workflow("gradle", [
+
+   gradle_buildandtest: {
+        sh "chmod +x ./gradlew"
+        def date = new Date().format("yy.MM.ddHHmmss", TimeZone.getTimeZone("UTC"))
+        def version = sh (script: "./gradlew properties -q | grep '^version:' | awk '{print \$2}'",
+                        returnStdout: true).trim()
+        def archiveBaseName = sh (script: "./gradlew properties -q | grep 'archivesBaseName:' | awk '{print \$2}'",
+                        returnStdout: true).trim()
+        if (isPullRequest()) {
+            buildVersion = 'PR' + env.CHANGE_ID + '-' + version + '-'+ date
+        }else{
+            buildVersion = version + '-'+ date
+        }
+        JAR_FILE = './build/libs/' + archiveBaseName + '-' + buildVersion + '.jar'
+        logInfo { "jar file name: "+ jarName }
+        sh "./gradlew -Pversion=${buildVersion} clean build test"
+   },
+
+   gradle_buildandtest_after: [
+       ['CodeChecks', {
+           execParallel([
+               "CodeQuality" : {
+                   sh "apk add --no-cache git"
+                   sh "./gradlew jacocoTestReport"
+                   sonarRunner(context)
+               },
+               "CodeSecurity": {
+                   performBinaryApplicationScan(BAS_ID, JAR_FILE, "02609b70-a4ab-11ea-aef7-0050560c4716", "", PROTECODE_CREDENTIALS_ID)
+               }
+           ])
+       }]
+   ],
+
+   gradle_publish: {
+        script {
+            env.DEPL_NAME=sh( script: "echo notify-${env.BRANCH_NAME} |tr -d '_'| tr '[:upper:]' '[:lower:]'",returnStdout: true).trim()
+        }
+        withCredentials([usernamePassword(credentialsId: 'NEXUS_USER_CCBD', passwordVariable: 'nexuspassw', usernameVariable: 'nexususer'),string(credentialsId: 'KUBECTL_CCBD', variable: 'kube_config')]) {
+            execParallel([
+                    "Push image to Repo": {
+                        if (env.BRANCH_NAME == 'master') {
+                            sh "./gradlew jib -Djib.to.image=nexus.secure.ifao.net:9343/${env.DEPL_NAME}:${env.BUILD_ID} -Djib.to.auth.username=${nexususer} -Djib.to.auth.password=${nexuspassw}"
+                        }
+                    }
+                    // if any additional process to be executed parallely, add here
+            ])
+        }
+   }
+])

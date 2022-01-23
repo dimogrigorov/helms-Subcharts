@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ccbd
+    release: master
+  name: ccbd-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ccbd
+      release: master
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: ccbd
+        release: master
+    spec:
+      containers:
+      - env:
+        - name: spring.cloud.config.uri
+          value: https://config-server.config:8888/
+        - name: spring.profiles.active
+          value: test
+        - name: spring.security.oauth2.client.provider.keycloak.token-uri
+          value: https://keycloak-mom-949-dip.apps.openshift.sofia.ifao.net/auth/realms/cytricNG/protocol/openid-connect/token
+        - name: spring.security.oauth2.client.registration.keycloak.authorization-grant-type
+          value: client_credentials
+        - name: spring.security.oauth2.client.registration.keycloak.client-id
+          value: ccbd
+        - name: spring.security.oauth2.client.registration.keycloak.client-secret
+          value: 578f06bf-261b-48c6-a6c1-eed459676f51
+        - name: ssl.cloud-config.truststore
+          value: file:/opt/truststore/mom.p12
+        - name: ssl.cloud-config.truststore-password
+          value: Amadeus06
+        - name: ssl.keycloak.truststore
+          value: file:/opt/truststore/mom.p12
+        - name: ssl.keycloak.truststore-password
+          value: Amadeus06
+        image: nexus.secure.ifao.net:9343/ccbd-master:257
+        imagePullPolicy: Always
+        name: ccbd
+        ports:
+        - containerPort: 8080
+          name: ccbd-web
+          protocol: TCP
+        resources:
+           requests:
+             memory: "256Mi"
+             cpu: "250m"
+           limits:
+             memory: "4096Mi"
+             cpu: "2"
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/private
+          name: ccbd-private-key
+          readOnly: true
+        - mountPath: /opt/truststore
+          name: mom
+          readOnly: true
+        - mountPath: /opt/keystore
+          name: ccbd-keystore
+          readOnly: true
+        - mountPath: /opt/ext-trustore
+          name: ext-trustore
+          readOnly: true
+        - mountPath: /opt/exchange
+          name: obj-exchange
+          readOnly: true
+        - name: all-in-one
+          mountPath: /opt/kat
+          readOnly: true
+      imagePullSecrets:
+      - name: nexus
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: mom
+        secret:
+          defaultMode: 420
+          secretName: mom-truststore
+      - name: ccbd-private-key
+        secret:
+          defaultMode: 400
+          secretName: ccbd-private-key
+      - name: ccbd-keystore
+        secret:
+          defaultMode: 420
+          secretName: ccbd-keystore
+      - configMap:
+          defaultMode: 420
+          name: ext-endpoints-truststore
+        name: ext-trustore
+      - configMap:
+          defaultMode: 420
+          name: obj-exchange-xsd
+        name: obj-exchange
+      - name: all-in-one
+        projected:
+          sources:
+          - configMap:
+              name: kat-keystore
+          - configMap:
+              name: kat-trusted-keystore
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccbd-master
+spec:
+  selector:
+    app: ccbd
+    release: master
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: ccbd-web

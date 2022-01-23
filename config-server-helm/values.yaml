@@ -1,0 +1,150 @@
+---
+replicaCount: 1
+autoscaling:
+  enabled: false
+env:
+  CHECK_INTERVAL: "30"
+  INITIAL_DELAY: "60"
+  REFRESH_ON_CHANGE: "true"
+  bitbucket_default_label: master
+  bitbucket_url: "https://repository.secure.ifao.net:7443/scm/stt/config.git"
+  keycloak.auth-server-url: "https://keycloak-dip.apps.openshift.sofia.ifao.net/auth/"
+  keycloak.realm: cytricNG
+  keycloak.resource: config_server
+  keycloak.truststore: /opt/truststore/mom.p12
+  logging.file.path: /var/log/config-server
+  management.endpoints.web.exposure.include: "*"
+  server.port: "8888"
+  server.ssl.enabled: "true"
+  server.ssl.key-store: /opt/keystore/configserver.p12
+  spring.cloud.bus.enabled: "true"
+  spring.profiles.active: "dev,git"
+  spring.rabbitmq.host: rabbitmq-rabbitmq-ha.rabbitmq
+  spring.rabbitmq.port: "5671"
+  spring.rabbitmq.ssl.enabled: "true"
+  spring.rabbitmq.virtual-host: cytric_companions
+filebeat:
+  image: "docker.elastic.co/beats/filebeat:6.8.13"
+  resources:
+    limits:
+      cpu: 100m
+      memory: 100Mi
+    requests:
+      cpu: 100m
+      memory: 100Mi
+fullnameOverride: config-server
+image: "nexus.secure.ifao.net:9343/config-server-master"
+# Overrides the image tag whose default is the chart appVersion.
+imageTag: "latest"
+imagePullSecrets:
+  - name: nexus
+podSecurityContext:
+  fsGroup: 1000640000
+resources:
+  limits:
+    cpu: 1
+    memory: 2Gi
+  requests:
+    cpu: 1
+    memory: 512Mi
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000640000
+service:
+  port: 8888
+  type: ClusterIP
+serviceAccount:
+  annotations: {}
+  create: true
+  name: filebeat
+volumeMounts:
+  -
+    mountPath: /var/log/config-server
+    name: logs
+  -
+    mountPath: /opt/truststore
+    name: mom-truststore
+  -
+    mountPath: /opt/keystore
+    name: config-server-keystore
+
+configMaps:
+  filebeat:
+    queue.mem:
+      events: 65535
+      flush.min_events: 0
+      flush.timeout: 0s
+
+    filebeat.inputs:
+
+    - type: log
+      enabled: true
+      paths:
+        - /logs/configServerLog.json
+
+      json.message_key: "message"
+      json.keys_under_root: true
+      json.overwrite_keys: true
+      json.add_error_key: true
+
+    filebeat.config.modules:
+      path: ${path.config}/modules.d/*.yml
+      reload.enabled: false
+
+    setup.template:
+      enabled: true
+      name: "ccbdc-not-used"
+      pattern: "ccbdc-not-used.*"
+      overwrite: false
+
+    setup.template.settings:
+      index.number_of_shards: 1
+      index.codec: best_compression
+      _source.enabled: false
+
+    output.elasticsearch:
+      enabled: true
+      hosts: ["es.sofia.ifao.net:9200"]
+      escape_html: true
+      index: "ccbd.configserver.%{+yyyy.ww}"
+      bulk_max_size: 500
+      backoff.init: 10s
+      backoff.max: 300s
+      timeout: 300
+
+    processors:
+      - add_host_metadata: ~
+      - decode_json_fields:
+          fields: ["message"]
+          process_array: true
+      - drop_fields:
+          fields: ["log"]
+      - rename:
+          fields:
+          - from: "thread_name"
+            to: "thread"
+          - from: "logger_name"
+            to: "logger"
+          - from: "caller_method_name"
+            to: "callerMethodName"
+          - from: "caller_file_name"
+            to: "callerFileName"
+          - from: "caller_line_number"
+            to: "callerLineNumber"
+          - from: "caller_class_name"
+            to: "callerClassName"
+          - from: "message"
+            to: "log"
+          ignore_missing: true
+          fail_on_error: false
+      - drop_fields:
+          fields: ["prospector", "input", "beat", "source", "id", "host.architecture", "host.containerized", "host.os", "level_value"]
+      - drop_event:
+          when:
+            contains:
+              log: ""
+
+
+    logging.level: error
+    logging.selectors: ["*"]
+    xpack.monitoring.enabled: false

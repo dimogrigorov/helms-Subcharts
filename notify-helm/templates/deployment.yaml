@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    {{- toYaml .Values.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "chart.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: "{{ .Values.serviceAccount.name }}"
+      securityContext:      
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      restartPolicy: Always
+      containers:
+      - name: filebeat
+        image: {{ .Values.filebeat.image }}
+        args: [
+          "-c", "/etc/filebeat.yml", "-e"
+        ]
+        command: ["filebeat", "--strict.perms=false"]
+        securityContext:
+          runAsUser: 1000
+        volumeMounts:
+          - mountPath: /etc/filebeat.yml
+            name: filebeat-config-{{ include "chart.fullname" . }}
+            subPath: filebeat.yml
+            readOnly: true
+          - mountPath: /logs
+            name: logs
+        resources:
+          {{- toYaml .Values.filebeat.resources | nindent 10 }}
+      - env:
+        {{- range $k, $v := .Values.env }}
+          - name: {{ $k }}
+            value: "{{ $v }}"
+        {{- end }}
+          - name: spring.security.oauth2.client.registration.keycloak.client-secret        
+            valueFrom:
+              secretKeyRef:
+                name: keycloak-client-secret
+                key: keycloak-client-secret
+          - name: ssl.cloud-config.truststore-password
+            valueFrom:
+              secretKeyRef:
+                name: ssl-cloud-config-truststore-password
+                key: ssl-cloud-config-truststore-password
+          - name: ssl.keycloak.truststore-password
+            valueFrom:
+              secretKeyRef:
+                name: ssl-keycloak-truststore-password 
+                key: ssl-keycloak-truststore-password
+          - name: spring.security.oauth2.client.registration.keycloak.client-secret
+            valueFrom:
+              secretKeyRef: 
+                name: keycloak-client-secret
+                key: keycloak-client-secret
+          - name: ssl.cloud-config.truststore-password
+            valueFrom:
+              secretKeyRef:
+                name: ssl-cloud-config-truststore-password
+                key: ssl-cloud-config-truststore-password
+          - name: ssl.keycloak.truststore-password
+            valueFrom:
+              secretKeyRef:
+                name: ssl-keycloak-truststore-password
+                key: ssl-keycloak-truststore-password
+        image: {{ .Values.image }}:{{ .Values.imageTag }}        
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        securityContext: 
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        name: notify-master
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        {{- range $v1 := .Values.volumeMounts }}
+          - mountPath: {{ $v1.mountPath }}
+            name: {{ $v1.name }}
+            {{- if $v1.readOnly }}              
+            readOnly: {{ $v1.readOnly }}
+            {{- end }}
+        {{- end }}
+      volumes:
+      - name: filebeat-config-{{ include "chart.fullname" . }}
+        configMap:
+          name: filebeat-config-{{ include "chart.fullname" . }}
+          defaultMode: 0644
+      - name: logs
+        emptyDir: {}
+      - name: mom
+        secret:
+          defaultMode: 420
+          secretName: mom-truststore
+      - name: notify-keystore
+        secret:
+          defaultMode: 420
+          secretName: notify-master-keystore

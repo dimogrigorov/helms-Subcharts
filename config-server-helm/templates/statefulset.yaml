@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+  serviceName: config-server
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "chart.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: "{{ .Values.serviceAccount.name }}"
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+      - name: filebeat
+        image: {{ .Values.filebeat.image }}
+        args: [
+          "-c", "/etc/filebeat.yml", "-e"
+        ]
+        securityContext:
+          runAsUser: 1000
+        volumeMounts:
+          - mountPath: /etc/filebeat.yml
+            name: filebeat-config-{{ include "chart.fullname" . }}
+            subPath: filebeat.yml
+            readOnly: true
+          - mountPath: /logs
+            name: logs
+        resources:
+          {{- toYaml .Values.filebeat.resources | nindent 10 }} 
+      - env:
+        {{- range $k, $v := .Values.env }}
+        - name: {{ $k }}
+          value: "{{ $v }}"
+        {{- end }}
+        - name: spring.rabbitmq.username
+          valueFrom:
+            secretKeyRef:
+              key: rabbitmq_user
+              name: rabbitmq-creds
+        - name: spring.rabbitmq.password
+          valueFrom:
+            secretKeyRef:
+              key: rabbitmq_pass
+              name: rabbitmq-creds
+        - name: spring.rabbitmq.ssl.trust-store
+          valueFrom:
+            secretKeyRef:
+              key: truststore_location
+              name: main-truststore
+        - name: spring.rabbitmq.ssl.trust-store-password
+          valueFrom:
+            secretKeyRef:
+              key: truststore_pass
+              name: main-truststore
+        - name: bitbucket_user
+          valueFrom:
+            secretKeyRef:
+              key: bitbucket_user
+              name: bitbucket-creds
+        - name: bitbucket_pass
+          valueFrom:
+            secretKeyRef:
+              key: bitbucket_pass
+              name: bitbucket-creds
+        - name: keycloak.credentials.secret
+          valueFrom:
+            secretKeyRef:
+              key: keycloak_secret
+              name: keycloak-secret
+        - name: encrypt.key
+          valueFrom:
+            secretKeyRef:
+              key: encrypt_key
+              name: config-server-secrets
+        - name: keycloak.truststore-password
+          valueFrom:
+            secretKeyRef:
+              key: truststore_pass
+              name: main-truststore
+        - name: server.ssl.key-store-password
+          valueFrom:
+            secretKeyRef:
+              key: keystore_pass
+              name: config-server-secrets
+        image: {{ .Values.image }}:{{ .Values.imageTag }}
+        imagePullPolicy: Always
+        name: config-server
+        ports:
+        - containerPort: 8888
+          name: https-configs
+          protocol: TCP
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        {{- range $v1 := .Values.volumeMounts }}
+          - mountPath: {{ $v1.mountPath }}
+            name: {{ $v1.name }}
+            {{- if $v1.readOnly }}
+            readOnly: {{ $v1.readOnly }}
+            {{- end }}
+        {{- end }}
+      restartPolicy: Always
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+      - name: filebeat-config-{{ include "chart.fullname" . }}
+        configMap:
+          name: filebeat-config-{{ include "chart.fullname" . }}
+          defaultMode: 0644
+      - name: logs
+        emptyDir: {}
+      - name: mom-truststore
+        secret:
+          defaultMode: 420
+          secretName: mom-truststore
+      - name: config-server-keystore
+        secret:
+          defaultMode: 420
+          secretName: config-server-keystore

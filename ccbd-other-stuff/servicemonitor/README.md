@@ -1,0 +1,2 @@
+Prometheus operator service monitor for ccbd.
+For now the monitoring endpoint is accessible only after supplying barrier token. The barrier tokens are with short lifespan and it must be regenerated. For this we use script which is authenticating in keycloak with user/pass and then generating new token. The token then is added to kubernetes secret which is defined by the servicemonitor as barrier token location.    

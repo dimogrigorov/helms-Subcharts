@@ -1,0 +1,157 @@
+---
+affinity: {}
+replicaCount: 1
+autoscaling:
+  enabled: false
+env:
+  JAVA_OPTS: "-Xss256k -Xms1G -Xmx6G -XX:+UseG1GC -XX:MaxGCPauseMillis=2000 -XX:+OptimizeStringConcat -XX:+UseStringCache -XX:MaxHeapFreeRatio=70 -XX:+UseStringDeduplication"
+  spring.cloud.config.uri: "https://config-server.config:8888/"
+  spring.profiles.active: test
+  spring.security.oauth2.client.provider.keycloak.token-uri: "https://keycloak-dip.apps.openshift.sofia.ifao.net/auth/realms/cytricNG/protocol/openid-connect/token"
+  spring.security.oauth2.client.registration.keycloak.authorization-grant-type: client_credentials
+  spring.security.oauth2.client.registration.keycloak.client-id: ccbd
+  ssl.cloud-config.truststore: "file:/opt/truststore/mom.p12"
+  ssl.keycloak.truststore: "file:/opt/truststore/mom.p12"
+  logging.file.path: /logs
+filebeat:
+  image: "docker.elastic.co/beats/filebeat:6.8.13"
+  resources:
+    limits:
+      cpu: 100m
+      memory: 100Mi
+    requests:
+      cpu: 100m
+      memory: 100Mi
+fullnameOverride: "ccbd-master"
+image:
+  pullPolicy: IfNotPresent
+  repository: "nexus.secure.ifao.net:9343/ccbd-master"
+  tag: "21.10.422"
+imagePullSecrets: []
+ingress:
+  annotations: {}
+  enabled: false
+  hosts:
+    -
+      host: chart-example.local
+      paths: []
+  tls: []
+nameOverride: ""
+nodeSelector: {}
+podAnnotations: {}
+podSecurityContext:
+  fsGroup: 1000650000
+replicaCount: 1
+resources:
+  limits:
+    cpu: 4
+    memory: 8Gi
+  requests:
+    cpu: 1
+    memory: 1Gi
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000650000
+serviceAccount:
+  annotations: {}
+  create: true
+  name: filebeat
+service:
+  port: 8080
+  type: ClusterIP
+tolerations: []
+volumeMounts:
+  -
+    mountPath: /opt/private
+    name: ccbd-private-key
+    readOnly: true
+  -
+    mountPath: /opt/truststore
+    name: mom
+    readOnly: true
+  -
+    mountPath: /opt/keystore
+    name: ccbd-keystore
+    readOnly: true
+  -
+    mountPath: /opt/ext-trustore
+    name: ext-trustore
+    readOnly: true
+  -
+    mountPath: /opt/exchange
+    name: obj-exchange
+    readOnly: true
+  -
+    name: all-in-one
+    mountPath: /opt/kat
+    readOnly: true
+  -
+    name: logs
+    mountPath: /logs
+    readOnly: false
+
+configMaps:
+  filebeat:
+    filebeat.registry_flush: 1s
+  
+    queue.mem:
+      events: 65535
+      flush.min_events: 0
+      flush.timeout: 0s
+  
+    filebeat.inputs:
+  
+    - type: log
+      enabled: true
+      paths:
+        - /logs/ccbdLog.json
+  
+      json.message_key: "message"
+      json.keys_under_root: true
+      json.overwrite_keys: true
+      json.add_error_key: true
+  
+    filebeat.config.modules:
+      path: ${path.config}/modules.d/*.yml
+      reload.enabled: false
+  
+    setup.template:
+      enabled: true
+      name: "ccbda-not-used"
+      pattern: "ccbda-not-used.*"
+      overwrite: false
+  
+    setup.template.settings:
+      index.number_of_shards: 1
+      index.codec: best_compression
+      _source.enabled: false
+  
+    output.elasticsearch:
+      enabled: true
+      hosts: ["es.sofia.ifao.net:9200"]
+      escape_html: true
+      index: "ccbd.app.%{+yyyy.ww}"
+      bulk_max_size: 500
+      backoff.init: 10s
+      backoff.max: 300s
+      timeout: 300
+  
+    processors:
+      - add_host_metadata: ~
+      - decode_json_fields:
+          fields: ["message"]
+          process_array: true
+      - drop_fields:
+          fields: ["log"]
+      - rename:
+          fields:
+          - from: "thread_name"
+            to: "thread"
+          - from: "logger_name"
+            to: "logger"
+          - from: "message"
+            to: "log"
+          ignore_missing: true
+          fail_on_error: false
+      - drop_fields:
+          fields: ["prospector", "input", "beat", "source", "id", "host.architecture", "host.containerized", "host.os", "level_value"]

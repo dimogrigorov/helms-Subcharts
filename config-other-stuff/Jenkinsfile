@@ -1,0 +1,76 @@
+@Library(['pipeline-framework', 'pipeline-toolbox']) _
+// Jenkins build parameters
+properties([disableConcurrentBuilds()])
+
+try {
+    workflow(
+            'mvn', [
+            team                 : 'TRU-TCH-COR-RDT-TEC',
+            projectName          : 'config-server',
+            projectKey           : 'config-server',
+            mvn_Test_skip        : true,
+            mvn_Complete_skip    : true,
+            mvn_Deploy_skip      : true,
+            mvn_Notify_skip      : true,
+            hasToDoAssessSecurity: true,
+            mvn_Complete_skip    : true,
+            mvn_build            : {
+                script {
+                    env.DEPL_NAME = sh(script: "echo ${env.BITBUCKET_REPOSITORY}-${env.BRANCH_NAME} |tr -d '_'| tr '[:upper:]' '[:lower:]'", returnStdout: true).trim()
+                    echo 'Building ccbd'
+                    sh "mvn --version"
+                    sh "mvn clean install -DskipTests"
+                    if (env.BRANCH_NAME == 'master') {
+                        sh "docker build . -t nexus.secure.ifao.net:9343/${env.DEPL_NAME}:${env.BUILD_ID}"
+                        sh "docker build . -t nexus.secure.ifao.net:9343/${env.DEPL_NAME}:latest"
+                        withCredentials([usernamePassword(credentialsId: 'NEXUS_USER_CCBD', passwordVariable: 'nexuspassw', usernameVariable: 'nexususer')]) {
+                            script {
+                                env.DEPL_NAME = sh(script: "echo ${env.BITBUCKET_REPOSITORY}-${env.BRANCH_NAME} |tr -d '_'| tr '[:upper:]' '[:lower:]'", returnStdout: true).trim()
+                            }
+                            sh "docker login nexus.secure.ifao.net:9343 -u ${nexususer} -p ${nexuspassw}"
+                            sh "docker push nexus.secure.ifao.net:9343/${env.DEPL_NAME}:${env.BUILD_ID}"
+                            sh "docker push nexus.secure.ifao.net:9343/${env.DEPL_NAME}:latest"
+
+                            echo "New release version: nexus.secure.ifao.net:9343/${env.DEPL_NAME}:${env.BUILD_ID}"
+
+                        }
+                    }
+                }
+
+            },
+    ]
+    )
+}
+finally {
+    stage('Email') {
+        // Building mail
+        String mailBody = ""
+        if (isPullRequest()) {
+            mailBody += "<p>\n" +
+                    "Build for <b>pull request</b> <a href=\"${env.CHANGE_URL}\">${env.CHANGE_ID}</a><br/>\n" +
+                    "By ${env.CHANGE_AUTHOR}<br/>\n" +
+                    "To pull <code>${env.CHANGE_BRANCH}</code> into <code>${env.CHANGE_TARGET}</code> branch.<br/>\n" +
+                    "</p>\n"
+        }
+        mailBody += "Build <a href=\"${currentBuild.absoluteUrl}\">${currentBuild.displayName}</a> status " +
+                "for repository " +
+                "<a href=\"https://repository.secure.ifao.net:7443/projects/${env.BITBUCKET_PROJECT}/repos/${env.BITBUCKET_REPOSITORY}/branches\">" +
+                "${env.BITBUCKET_PROJECT}/${env.BITBUCKET_REPOSITORY}</a> "
+        if (isPullRequest()) {
+            mailBody += "on pull request <a href=\"https://repository.secure.ifao.net:7443/projects/${env.BITBUCKET_PROJECT}/repos/${env.BITBUCKET_REPOSITORY}/pull-requests/${env.BRANCH_NAME.replace('PR-', '')}\">${env.BRANCH_NAME}</a> "
+        } else {
+            mailBody += "on branch <a href=\"https://repository.secure.ifao.net:7443/projects/${env.BITBUCKET_PROJECT}/repos/${env.BITBUCKET_REPOSITORY}/browse?at=refs/heads/${env.BRANCH_NAME}\">${env.BRANCH_NAME}</a> "
+        }
+        mailBody += "is : <b>${currentBuild.currentResult}</b>.<br/>" +
+                "Build duration: ${currentBuild.durationString.replace(' and counting', '')}."
+        // Sending mail
+        emailext(
+                from: 'jenkins.pipeline@amadeus.com',
+                recipientProviders: [/*[$class: 'CulpritsRecipientProvider'],*/ [$class: 'RequesterRecipientProvider']], // culprits recipient to add when CI process is stable not to spam
+                subject: "[Jenkins][${currentBuild.currentResult}] Build ${env.BUILD_DISPLAY_NAME} for repository ${env.BITBUCKET_PROJECT}/${env.BITBUCKET_REPOSITORY} on branch ${env.BRANCH_NAME}",
+                body: mailBody,
+                mimeType: 'text/html',
+                attachLog: false
+        )
+    }
+}

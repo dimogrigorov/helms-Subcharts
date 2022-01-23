@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ccbd
+    release: master
+  name: ccbd-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ccbd
+      release: master
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: ccbd
+        release: master
+    spec:
+      containers:
+      - env:
+        - name: spring.profiles.active
+          value: test
+        - name: cytric_trip_api_url
+          value: https://cytric-dummy:18080/cytric/trip
+        - name: keycloak_auth_server_url
+          value: https://keycloak-http.keycloak:8443/auth
+        - name: keycloak_realm
+          value: cytricNG
+        - name: keycloak_client
+          value: ccbd
+        - name: keycloak_server_truststore
+          value: file:/opt/truststore/mom.p12
+        - name: keycloak_server_truststore_pwd
+          value: Amadeus06
+        - name: server.ssl.key-store-password
+          value: Amadeus06
+        - name: server.ssl.trust-store-password
+          value: Amadeus06
+        - name: ssl.cloud-config.truststore-password
+          value: Amadeus06
+        - name: ssl.cloud-config.truststore
+          value: file:/opt/truststore/mom.p12
+        - name: spring.cloud.config.uri
+          value: https://config-server.config:8888/
+        image: nexus.secure.ifao.net:9343/ccbd-master:126
+        imagePullPolicy: Always
+        name: ccbd
+        ports:
+        - containerPort: 8080
+          name: ccbd-web
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/truststore
+          name: mom
+          readOnly: true
+        - mountPath: /opt/keystore
+          name: ccbd-keystore
+          readOnly: true
+      - env:
+        - name: REPORTER_GRPC_HOST_PORT
+          value: jaeger-collector:14250
+        image: jaegertracing/jaeger-agent:1.18.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: admin
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: jaeger-agent-sidecar
+        ports:
+        - containerPort: 14271
+          name: admin
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: admin
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+      imagePullSecrets:
+      - name: nexus
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: mom
+        secret:
+          defaultMode: 420
+          secretName: mom-truststore
+      - name: ccbd-keystore
+        secret:
+          defaultMode: 420
+          secretName: ccbd-keystore
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccbd-master
+spec:
+  selector:
+    app: ccbd
+    release: master
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: ccbd-web

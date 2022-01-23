@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccbd
+  labels:
+    app: ccbd
+    release: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ccbd
+      release: master
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: ccbd
+        release: master
+    spec:
+      imagePullSecrets:
+        - name: nexus
+      containers:
+        - name: ccbd
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: ccbd-endpoint
+          #image: nexus.secure.ifao.net:9343/ccbd
+          image: nexus.secure.ifao.net:9343/ccbd:0.10
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "test"
+            - name: mongodb_server_host
+              value: "mongodb-test-mongodb-replicaset"
+            - name: mongodb_server_port
+              value: "27017"
+            - name: mongodb_server_auth_database
+              value: "admin"
+            - name: mongodb_server_user
+              value: "admin"
+            - name: mongodb_server_pwd
+              value: "secret"
+            - name: mongodb_server_database
+              value: "ccbd"
+            - name: mongodb_server_truststore
+              value: "classpath:truststore/mongoserver-truststore.p12"
+            - name: mongodb_server_truststore_pwd
+              value: "Amadeus06"
+            - name: rabbitmq_server_host
+              value: "mainframe"
+            - name: rabbitmq_server_port
+              value: "5671"
+            - name: rabbitmq_server_vhost
+              value: "cytric_companions"
+            - name: rabbitmq_server_user
+              value: "devops"
+            - name: rabbitmq_server_pwd
+              value: "somepass"
+            - name: rabbitmq_server_truststore
+              value: "classpath:truststore/rabbitmq-truststore.p12"
+            - name: rabbitmq_server_truststore_pwd
+              value: "Amadeus06"
+            - name: keycloak_auth_server_url
+              value: "https://keycloak-http:8443/auth"
+            - name: keycloak_realm
+              value: "cytricNG"
+            - name: keycloak_client
+              value: "ccbd"
+            - name: keycloak_server_truststore
+              value: "classpath:truststore/keycloak-truststore-old.p12"
+            - name: keycloak_server_truststore_pwd
+              value: "Amadeus06"
+            - name: keycloak_server_secret
+              value: "3d654b57-01ac-49f4-a6b4-8aea8f8774e7"
+            - name: server.ssl.key-store-password
+              value: "Amadeus06"
+            - name: spring_config_server_host
+              value: "localhost"
+            - name: spring_config_server_port
+              value: "8888"
+            - name: cytric_trip_api_url
+              value: "http://localhost:18080/cytric/trip
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccbd-endpoint
+  labels:
+    app: ccbd
+    release: master
+spec:
+  selector:
+    app: ccbd
+    release: master
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: ccbd-endpoint
+  type: NodePort

@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: notify-master
+  name: notify-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notify-master
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: notify-master
+    spec:
+      serviceAccountName: filebeat
+      containers:
+      - name: filebeat
+        image: docker.elastic.co/beats/filebeat:6.8.13
+        args: [
+          "-c", "/etc/filebeat.yml", "-e"
+        ]
+        command: ["filebeat", "--strict.perms=false"]
+        securityContext:
+          runAsUser: 1000
+        volumeMounts:
+          - mountPath: /etc/filebeat.yml
+            name: config-filebeat-notify
+            subPath: filebeat.yml
+          - mountPath: /logs
+            name: logs
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      - env:
+        - name: spring.cloud.config.uri
+          value: https://config-server.config:8888/
+        - name: spring.profiles.active
+          value: test
+        - name: spring.security.oauth2.client.provider.keycloak.token-uri
+          value: https://keycloak-dip.apps.openshift.sofia.ifao.net/auth/realms/cytricNG/protocol/openid-connect/token
+        - name: spring.security.oauth2.client.registration.keycloak.client-id
+          value: notify
+        - name: spring.security.oauth2.client.registration.keycloak.client-secret
+          value: 01e8437a-906f-4d97-918e-d0e7b14230be
+        - name: ssl.keycloak.truststore
+          value: file:/opt/truststore/mom.p12
+        - name: ssl.keycloak.truststore-password
+          value: Amadeus06
+        - name: ssl.cloud-config.truststore-password
+          value: Amadeus06
+        - name: ssl.cloud-config.truststore
+          value: file:/opt/truststore/mom.p12
+        - name: logging.file.path
+          value: /var/log/notify
+        image: nexus.secure.ifao.net:9343/notify-master:34
+        imagePullPolicy: Always
+        securityContext: {}
+        name: notify-master
+        resources:
+          limits:
+            cpu: 1
+            memory: 512Mi
+          requests:
+            cpu: 1
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /opt/truststore
+          name: mom
+          readOnly: true
+        - mountPath: /opt/keystore
+          name: notify-keystore
+          readOnly: true
+        - mountPath: /var/run/secrets/tokens
+          name: sa-token
+        - mountPath: /var/log/notify
+          name: logs
+      imagePullSecrets:
+      - name: nexus
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 0
+      volumes:
+      - name: config-filebeat-notify
+        configMap:
+          name: filebeat-config-notify
+          defaultMode: 0640
+      - name: logs
+        emptyDir: {}
+      - name: sa-token
+        secret:
+          secretName: filebeat-token-hdj79
+          defaultMode: 0640
+      - name: mom
+        secret:
+          defaultMode: 420
+          secretName: mom-truststore
+      - name: notify-keystore
+        secret:
+          defaultMode: 420
+          secretName: notify-master-keystore
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notify-master
+spec:
+  ports:
+  - name: notify-master
+    port: 8082
+    protocol: TCP
+    targetPort: 8082
+  selector:
+    app: notify-master
+

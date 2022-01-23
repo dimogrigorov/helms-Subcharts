@@ -1,0 +1,192 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-server
+spec:
+  selector:
+    app: config-server
+  ports:
+    - protocol: TCP
+      port: 8888
+      targetPort: 8888
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: config-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-server
+  serviceName: config-server
+  template:
+    metadata:
+      labels:
+        app: config-server
+    spec:
+      serviceAccountName: filebeat
+      containers:
+      - name: filebeat
+        image: docker.elastic.co/beats/filebeat:6.8.13
+        args: [
+          "-c", "/etc/filebeat.yml", "-e"
+        ]
+#        command: ["filebeat", "--strict.perms=false"]
+        securityContext:
+          runAsUser: 1000
+#          fsGroup: 0
+          #runAsGroup: 0
+        volumeMounts:
+          - mountPath: /etc/filebeat.yml
+            name: config-filebeat
+            subPath: filebeat.yml
+          - mountPath: /logs
+            name: logs
+          - mountPath: /var/run/secrets/tokens
+            name: sa-token
+        resources:
+          limits:
+            cpu: 1
+            memory: 2Gi
+          requests:
+            cpu: 1
+         #   memory: 512Mi
+      - env:
+        - name: INITIAL_DELAY
+          value: "60"
+        - name: CHECK_INTERVAL
+          value: "30"
+        - name: REFRESH_ON_CHANGE
+          value: "true"
+        - name: spring.cloud.bus.enabled
+          value: "true"
+        - name: management.endpoints.web.exposure.include
+          value: '*'
+        - name: bitbucket_default_label
+          value: master
+        - name: bitbucket_url
+          value: https://repository.secure.ifao.net:7443/scm/stt/config.git
+        - name: spring.profiles.active
+          value: dev,git
+        - name: spring.rabbitmq.virtual-host
+          value: cytric_companions
+        - name: bitbucket_user
+          valueFrom:
+            secretKeyRef:
+              key: bitbucket_user
+              name: bitbucket-creds
+        - name: bitbucket_pass
+          valueFrom:
+            secretKeyRef:
+              key: bitbucket_pass
+              name: bitbucket-creds
+        - name: keycloak.realm
+          value: cytricNG
+        - name: keycloak.resource
+          value: config_server
+        - name: keycloak.credentials.secret
+          valueFrom:
+            secretKeyRef:
+              key: keycloak_secret
+              name: keycloak-secret
+        - name: encrypt.key
+          valueFrom:
+            secretKeyRef:
+              key: encrypt_key
+              name: config-server-secrets
+        - name: keycloak.auth-server-url
+          value: https://keycloak-api-1260-dip.apps.openshift.sofia.ifao.net/auth/
+        - name: server.ssl.enabled
+          value: "true"
+        - name: server.ssl.key-store
+          value: /opt/keystore/configserver.p12
+        - name: server.ssl.key-store-password
+          valueFrom:
+            secretKeyRef:
+              key: keystore_pass
+              name: config-server-secrets
+        - name: keycloak.truststore
+          value: /opt/truststore/mom.p12
+        - name: keycloak.truststore-password
+          valueFrom:
+            secretKeyRef:
+              key: truststore_pass
+              name: main-truststore
+        - name: server.port
+          value: "8888"
+        - name: spring.rabbitmq.host
+          value: rabbitmq-rabbitmq-ha.rabbitmq
+        - name: spring.rabbitmq.port
+          value: "5671"
+        - name: spring.rabbitmq.username
+          valueFrom:
+            secretKeyRef:
+              key: rabbitmq_user
+              name: rabbitmq-creds
+        - name: spring.rabbitmq.password
+          valueFrom:
+            secretKeyRef:
+              key: rabbitmq_pass
+              name: rabbitmq-creds
+        - name: spring.rabbitmq.ssl.trust-store
+          valueFrom:
+            secretKeyRef:
+              key: truststore_location
+              name: main-truststore
+        - name: spring.rabbitmq.ssl.trust-store-password
+          valueFrom:
+            secretKeyRef:
+              key: truststore_pass
+              name: main-truststore
+        - name: spring.rabbitmq.ssl.enabled
+          value: "true"
+        - name: logging.file.path
+          value: /var/log/config-server
+        image: nexus.secure.ifao.net:9343/config-server-master:latest
+        imagePullPolicy: Always
+        name: config-server
+        ports:
+        - containerPort: 8888
+          name: https-configs
+          protocol: TCP
+#        resources:
+#          limits:
+#            cpu: "1"
+#            memory: 2Gi
+#          requests:
+#            cpu: 200m
+#            memory: 512Mi
+        volumeMounts:
+        - mountPath: /var/log/config-server
+          name: logs
+        - mountPath: /opt/truststore
+          name: mom-truststore
+        - mountPath: /opt/keystore
+          name: config-server-keystore
+      imagePullSecrets:
+      - name: nexus
+      restartPolicy: Always
+      securityContext:
+ #         runAsUser: 1000640001
+        fsGroup: 0
+      volumes:
+      - name: config-filebeat
+        configMap:
+          name: filebeat-config
+          defaultMode: 0640
+      - name: logs
+        emptyDir: {}
+      - name: sa-token
+        secret:
+          secretName: filebeat-token-67zcg
+          defaultMode: 0640
+      - name: mom-truststore
+        secret:
+          defaultMode: 420
+          secretName: mom-truststore
+      - name: config-server-keystore
+        secret:
+          defaultMode: 420
+          secretName: config-server-keystore

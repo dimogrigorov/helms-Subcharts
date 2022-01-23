@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "ccbd-master.fullname" . }}
+  labels:
+  {{- include "ccbd-master.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+  {{- include "ccbd-master.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    any: true
+  endpoints:
+    - interval: 10s
+      port: ccbd-web
+      path: /actuator/prometheus
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true
+

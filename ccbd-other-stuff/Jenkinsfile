@@ -1,0 +1,234 @@
+@Library(['pipeline-framework', 'pipeline-toolbox']) _
+properties([disableConcurrentBuilds()])
+
+RELEASE_EMAIL_RECIPIENTS = 'tence.thomas@amadeus.com'
+binaryPath=""
+
+if (env.BRANCH_NAME == 'master') {
+    binaryPath ="./target/ccbd-master-0.1.2.jar"
+} else if (isReleaseBranch()) {
+    binaryPath= "./target/ccbd-0.1.1.jar"
+}else{
+    binaryPath ="./target/ccbd-${env.BRANCH_NAME}-0.1.1.jar"
+}
+
+yacUuid= '02609b70-a4ab-11ea-aef7-0050560c4716'
+
+try {
+    workflow('mvn', [
+            team                 : 'TRU-TRD-COR-RDT-AAE-BLR',
+            projectName          : 'ccbd',
+            projectKey           : 'ccbd',
+            mvn_Test_skip        : true,
+            mvn_Complete_skip    : true,
+            mvn_Deploy_skip      : true,
+            mvn_Notify_skip      : true,
+            hasToDoAssessSecurity: true,
+            credentialsId        : 'PROTECODE_CREDENTIALS_CCBD',
+            artifactoryReportUrl : 'NOT_AVAILABLE',
+            pathToArtifact       : "${binaryPath}",
+
+            mvn_Build            : {
+                echo "Branch name: ${env.BRANCH_NAME}"
+
+                sh "mkdir -p $HOME/.embedmongo/linux/"
+                sh "curl https://downloads.mongodb.org/win32/mongodb-win32-x86_64-3.5.5.zip -o $HOME/.embedmongo/linux/mongodb-win32-x86_64-3.5.5.zip"
+
+                sh "mvn clean install"
+
+                def repoId = "nexus-releases"
+                // calling "mvn jar:jar deploy:deploy" to avoid compiling when mvn deploy is called, and provide info to deploy command to use the existing
+                //jar instead of compiling creating new.
+                withCredentials([usernamePassword(credentialsId: 'NEXUS_USER_CCBD', passwordVariable: 'nexuspassw', usernameVariable: 'nexususer')]) {
+                    sh "mvn jar:jar deploy:deploy -s .mvn/settings.xml -Drepo.id=${repoId} -Drepo.uname=${nexususer} -Drepo.pwd=${nexuspassw} -Dmaven.test.skip=true"
+                }
+                stash name: 'target', includes: 'target/**'
+
+                assessSecurityInputs = assessSecurityCommonInput()
+                blackDuckScanInputs(assessSecurityInputs)
+                if (isReleaseBranch()) {
+                    fortifyScanInput(assessSecurityInputs)
+                }
+                //prisma job can be found in https://jenkins-pipeline-tchtne.cicd.rnd.amadeus.net/job/TNETOOLS/job/prisma-scanner/
+                // jenkins file for the same is located: https://rndwww.nce.amadeus.net/git/projects/TNETOOLS/repos/prisma-scanner/browse/Jenkinsfile_cCBD
+
+                print "Calling assessSecurity with inputs: $assessSecurityInputs"
+                assessSecurity(assessSecurityInputs)
+
+            }
+    ])
+    workflow('docker', [
+            team                       : 'TRU-TCH-COR-RDT-TEC',
+            projectName                : 'ccbd',
+            projectKey                 : 'ccbd',
+            docker_PrepareRelease_skip : true,
+            docker_Setup_skip          : true,
+            docker_Checkout_skip       : false,
+            docker_AssessSecurity_skip : true,
+            docker_Test_skip           : true,
+            docker_CompleteRelease_skip: true,
+            docker_build               : {
+                echo 'Login Nexus Docker repo'
+                withCredentials([usernamePassword(credentialsId: 'NEXUS_USER_CCBD', passwordVariable: 'nexuspassw', usernameVariable: 'nexususer'), string(credentialsId: 'KUBECTL_CCBD', variable: 'kube_config')]) {
+                    execParallel([
+                            "Login docker registry and push image": {
+                                if (env.BRANCH_NAME == 'master') {
+                                    script {
+                                        env.DEPL_NAME = sh(script: "echo ccbd-${env.BRANCH_NAME} |tr -d '_'| tr '[:upper:]' '[:lower:]'", returnStdout: true).trim()
+                                    }
+                                    def verAppendVal = new Date().format("yy.MM", TimeZone.getTimeZone("UTC"))
+                                    def versionVal = verAppendVal + "." + env.BUILD_ID
+                                    echo "New CCBD VERSION COMPUTED : ${versionVal}"
+
+                                    unstash 'target'
+
+                                    sh "docker build . --no-cache=true -t nexus.secure.ifao.net:9343/${env.DEPL_NAME}:${versionVal}"
+                                    sh "docker login nexus.secure.ifao.net:9343 -u ${nexususer} -p ${nexuspassw}"
+                                    sh "docker push nexus.secure.ifao.net:9343/${env.DEPL_NAME}:${versionVal}"
+
+                                    echo "Release docker image : nexus.secure.ifao.net:9343/${env.DEPL_NAME}:${versionVal}"
+                                } else if (isReleaseBranch()) {
+
+                                    env.DEPL_NAME = "ccbd-release"
+
+                                    def finalReleaseVersion = newVersion(getReleaseVersion())
+                                    echo "RELEASE VERSION: ${finalReleaseVersion}"
+
+                                    unstash 'target'
+                                    sh "docker build . --no-cache=true -t nexus.secure.ifao.net:9343/${env.DEPL_NAME}:${finalReleaseVersion}"
+                                    sh "docker login nexus.secure.ifao.net:9343 -u ${nexususer} -p ${nexuspassw}"
+                                    sh "docker push nexus.secure.ifao.net:9343/${env.DEPL_NAME}:${finalReleaseVersion}"
+
+                                    echo "Release docker image : nexus.secure.ifao.net:9343/${env.DEPL_NAME}:${finalReleaseVersion}"
+                                    echo "Committing tag version : ${finalReleaseVersion} "
+                                    prepareCommitTag(version: finalReleaseVersion)
+                                    echo "Pushing the commit tag now"
+                                    pushCommitTag()
+
+                                    sendNewReleaseEmail(finalReleaseVersion, "${env.DEPL_NAME}:${finalReleaseVersion}")
+
+                                    publisihToAmadeusDockerHub(env.DEPL_NAME, finalReleaseVersion)
+
+                                }
+                            }
+                    ])
+                }
+            }
+    ])
+}
+finally {
+    stage('Email') {
+
+        String subject = "[Jenkins][${currentBuild.currentResult}] Build ${env.BUILD_DISPLAY_NAME} for repository ${env.BITBUCKET_PROJECT}/${env.BITBUCKET_REPOSITORY} on branch ${env.BRANCH_NAME}"
+        // Building mail
+        String mailBody = ""
+        if (isPullRequest()) {
+            mailBody += "<p>\n" +
+                    "Build for <b>pull request</b> <a href=\"${env.CHANGE_URL}\">${env.CHANGE_ID}</a><br/>\n" +
+                    "By ${env.CHANGE_AUTHOR}<br/>\n" +
+                    "To pull <code>${env.CHANGE_BRANCH}</code> into <code>${env.CHANGE_TARGET}</code> branch.<br/>\n" +
+                    "</p>\n"
+        }
+        mailBody += "Build <a href=\"${currentBuild.absoluteUrl}\">${currentBuild.displayName}</a> status " +
+                "for repository " +
+                "<a href=\"https://repository.secure.ifao.net:7443/projects/${env.BITBUCKET_PROJECT}/repos/${env.BITBUCKET_REPOSITORY}/branches\">" +
+                "${env.BITBUCKET_PROJECT}/${env.BITBUCKET_REPOSITORY}</a> "
+        if (isPullRequest()) {
+            mailBody += "on pull request <a href=\"https://repository.secure.ifao.net:7443/projects/${env.BITBUCKET_PROJECT}/repos/${env.BITBUCKET_REPOSITORY}/pull-requests/${env.BRANCH_NAME.replace('PR-', '')}\">${env.BRANCH_NAME}</a> "
+        } else {
+            mailBody += "on branch <a href=\"https://repository.secure.ifao.net:7443/projects/${env.BITBUCKET_PROJECT}/repos/${env.BITBUCKET_REPOSITORY}/browse?at=refs/heads/${env.BRANCH_NAME}\">${env.BRANCH_NAME}</a> "
+        }
+        mailBody += "is : <b>${currentBuild.currentResult}</b>.<br/>" +
+                "Build duration: ${currentBuild.durationString.replace(' and counting', '')}."
+        // Sending mail
+        emailext(
+                from: 'jenkins.pipeline@amadeus.com',
+                recipientProviders: [/*[$class: 'CulpritsRecipientProvider'],*/ [$class: 'RequesterRecipientProvider']], // culprits recipient to add when CI process is stable not to spam
+                subject: subject,
+                body: mailBody,
+                mimeType: 'text/html',
+                attachLog: false
+        )
+    }
+}
+
+def sendNewReleaseEmail(version, imageTagId) {
+    // only when build is success
+    if (currentBuild.currentResult == 'SUCCESS') {
+        def subject = "[cCBD] New release version available: ${version}"
+        def body = "<p>Greetings,</p>\n" +
+                "<p>A new release is available for cCBD : <b>${version}</b><br/><br/>\n" +
+                "Docker Image Id:<b> nexus.secure.ifao.net:9343/${imageTagId}</b><br/><br/>\n" +
+                "Build id: <a href=\"${currentBuild.absoluteUrl}\">${currentBuild.displayName}</a><br/><br/>\n" +
+                "Nexus Repository : <a href=\"https://nexus.secure.ifao.net:8443/#browse/search=name.raw%3Dccbd-release%20AND%20attributes.docker.imageTag%3D${version}\">${imageTagId}</a>\n" +
+                "<br/><br/><br/>Regards,<br/>The CytricNG Team \n" +
+                "</p>\n"
+
+        logInfo { "Sending email to ${RELEASE_EMAIL_RECIPIENTS}" }
+
+        emailext(
+                from: 'jenkins.pipeline@amadeus.com',
+                to: "${RELEASE_EMAIL_RECIPIENTS}",
+                subject: subject,
+                body: body,
+                mimeType: 'text/html',
+                attachLog: false
+        )
+    } else {
+        logError { "Current Build result is: ${currentBuild.currentResult}, cannot send the release email." }
+    }
+}
+
+def assessSecurityCommonInput(){
+    assessSecurityInputs = [
+            'common': [
+                    'product': 'CCBD',
+                    'version': "${env.BRANCH_NAME}-${env.BUILD_ID}",
+                    'yacUuid': ["${yacUuid}"]
+            ],
+            'reporting': [
+                    // for the time being, this is disabled
+                    'securityCenter': [ 'application': "CCBD", 'version': "prisma"],
+                    'bitbucket': ['commonNotification': true]
+            ],
+    ]
+    return assessSecurityInputs
+}
+
+def blackDuckScanInputs(assessSecurityInputs){
+
+    assessSecurityInputs['blackDuck'] = [
+            'groupId': 350,
+            'paths': ["${binaryPath}"],
+            'credentialsId': 'PROTECODE_CREDENTIALS_CCBD'
+    ]
+
+}
+
+def fortifyScanInput(assessSecurityInputs) {
+
+    assessSecurityInputs['fortify']=[
+            'translate': [[
+                                  'type'   : 'mvn'
+                          ]],
+            'scan'     : [
+                    'projectVersion': 'security',
+                    'credentialsId' : 'FORTIFY_CCBD'
+            ],
+    ]
+}
+
+def publisihToAmadeusDockerHub(deployRepoName, version) {
+    print "Publising the docker image to Amadeus docker hub: dockerhub.rnd.amadeus.net"
+    def artifactDockerImageRepo = "dockerhub.rnd.amadeus.net/docker-built-cts-nce/ifao/${deployRepoName}"
+
+    withCredentials([
+            usernamePassword(credentialsId: 'IZ_USER', usernameVariable: 'AR_LOGIN', passwordVariable: 'AR_PASSWORD')]) {
+
+        sh "docker build . --no-cache=true -t ${artifactDockerImageRepo}:${version}"
+        sh 'docker login -u ${AR_LOGIN} -p ${AR_PASSWORD} dockerhub.rnd.amadeus.net'
+        sh "docker push ${artifactDockerImageRepo}:${version}"
+        print "DockerHub scan image published to Amadeus: ${artifactDockerImageRepo}:${version}"
+    }
+
+}

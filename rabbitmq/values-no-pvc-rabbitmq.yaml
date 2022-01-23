@@ -1,0 +1,583 @@
+## RabbitMQ application credentials
+## Ref: http://rabbitmq.com/access-control.html
+##
+rabbitmqUsername: devops
+rabbitmqPassword: somepass
+
+## RabbitMQ Management user used for health checks
+managementUsername: management
+managementPassword: manager2
+
+## Place any additional key/value configuration to add to rabbitmq.conf
+## Ref: https://www.rabbitmq.com/configure.html#config-items
+extraConfig: |
+#  queue_master_locator = min-masters
+
+## Place advanced.config file in /etc/rabbitmq/advanced.config
+## Ref: https://www.rabbitmq.com/configure.html#advanced-config-file
+advancedConfig: |
+
+## Definitions specification within the secret, will always be mounted
+## at /etc/definitions/defintions.json
+definitionsSource: definitions.json
+
+## Place any additional plugins to enable in /etc/rabbitmq/enabled_plugins
+## Ref: https://www.rabbitmq.com/plugins.html
+extraPlugins: |
+  rabbitmq_shovel,
+  rabbitmq_shovel_management,
+  rabbitmq_federation,
+  rabbitmq_federation_management,
+
+definitions:
+  globalParameters: |-
+#    {
+#        "name": "cluster_name",
+#        "value": "rabbitmq-ha"
+#    }
+  users: |-
+#   {
+#     "name": "myUsername",
+#     "password": "myPassword",
+#     "tags": "administrator"
+#   }
+  vhosts: |-
+   {
+     "name": "cytric_companions"
+   }
+  parameters: |-
+#   {
+#     "value": {
+#       "src-uri": "amqp://localhost",
+#       "src-queue": "source",
+#       "dest-uri": "amqp://localhost",
+#       "dest-queue": "destination",
+#       "add-forward-headers": false,
+#       "ack-mode": "on-confirm",
+#       "delete-after": "never"
+#     },
+#     "vhost": "/",
+#     "component": "shovel",
+#     "name": "test"
+#   }
+  permissions: |-
+   {
+     "user": "devops",
+     "vhost": "cytric_companions",
+     "configure": ".*",
+     "write": ".*",
+     "read": ".*"
+   }
+  topicPermissions: |-
+#   {
+#     "user": "myUsername",
+#     "vhost": "/rabbit",
+#     "exchange": "myexchange",
+#     "write": ".*",
+#     "read": ".*"
+#   }
+  queues: |-
+#    {
+#       "name":"myName",
+#       "vhost":"/rabbit",
+#       "durable":true,
+#       "auto_delete":false,
+#       "arguments":{}
+#    }
+  exchanges: |-
+#    {
+#       "name":"myName",
+#       "vhost":"/rabbit",
+#       "type":"direct",
+#       "durable":true,
+#       "auto_delete":false,
+#       "internal":false,
+#       "arguments":{}
+#    }
+  bindings: |-
+#    {
+#       "source":"myName",
+#       "vhost":"/rabbit",
+#       "destination":"myName",
+#       "destination_type":"queue",
+#       "routing_key":"myKey",
+#       "arguments":{}
+#    }
+## Sets the policies in definitions.json. This can be used to control the high
+## availability of queues by mirroring them to multiple nodes.
+## Ref: https://www.rabbitmq.com/ha.html
+  policies: |-
+    {
+      "name": "ha-all",
+      "pattern": ".*",
+      "vhost": "cytric_companions",
+      "definition": {
+        "ha-mode": "all",
+        "ha-sync-mode": "automatic",
+        "ha-sync-batch-size": 1
+      }
+    }
+
+## Ref: https://www.rabbitmq.com/rabbitmqctl.8.html#force_boot
+forceBoot: false
+
+## RabbitMQ default VirtualHost
+## Ref: https://www.rabbitmq.com/vhosts.html
+##
+rabbitmqVhost: "/"
+
+## Erlang cookie to determine whether different nodes are allowed to communicate with each other
+## Ref: https://www.rabbitmq.com/clustering.html
+##
+rabbitmqErlangCookie: Xj2H2EPmsfaSwPdzTaAjRdV4efcJamS5o2JHb
+
+## RabbitMQ Memory high watermark
+## Ref: http://www.rabbitmq.com/memory.html
+##
+rabbitmqMemoryHighWatermark: 2GB
+rabbitmqMemoryHighWatermarkType: absolute
+
+## EPMD port for peer discovery service used by RabbitMQ nodes and CLI tools
+## Ref: https://www.rabbitmq.com/clustering.html
+##
+rabbitmqEpmdPort: 4369
+
+## Node port
+rabbitmqNodePort: 5672
+
+## Manager port
+rabbitmqManagerPort: 15672
+
+## Set to true to precompile parts of RabbitMQ with HiPE, a just-in-time
+## compiler for Erlang. This will increase server throughput at the cost of
+## increased startup time. You might see 20-50% better performance at the cost
+## of a few minutes delay at startup.
+rabbitmqHipeCompile: true
+
+## SSL certificates
+## Red: http://www.rabbitmq.com/ssl.html
+rabbitmqCert:
+  enabled: true
+
+  # Specifies an existing secret to be used for SSL Certs
+  existingSecret: ""
+
+  ## Create a new secret using these values
+  cacertfile: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN0ekNDQVorZ0F3SUJBZ0lKQU45bW9ybW5raUJnTUEwR0NTcUdTSWIzRFFFQkN3VUFNQkl4RURBT0JnTlYKQkFNTUIxSnZiM1F0UTBFd0hoY05NakF3T1RBNE1Ea3pOekl4V2hjTk16QXdPVEEyTURrek56SXhXakFTTVJBdwpEZ1lEVlFRRERBZFNiMjkwTFVOQk1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBCndpR1dVV3ZLQlBhdXMyZSszbVRpTjEwdCtTVGxPYUdDVmdwamt3VjZjMklSQkd2S0Qzc0gvc0pHRm01RDFPT00KUEF2UzdEQ2JqM1U3RnRDY3VKWFJpcmNRazVPTmFyUzJWY2JLcjNxT3o2SExPOUY2Q2VtejNGMTAwWmlzZVpQUgpIaUp2QnE1N0x5Y3hEajdMWGRmUFp4dWZ2ZnpObko2TmJYMENYQ2luUU81d0lqM1lSeXppWlhyK0duMS83ZjVYCmowR2tzK2VSQXJOWnJpRk9EeGRGcmh0cjBmOWh5UVl1UWsxdzJNMzM2WWlMdTh4NjN3S0JLa2ZDa2pQcGd5aE4KVVFsR1RTR0pSVnZONmNRK3A1MGZGNlJ5Tnh5N3BtUHhMcnU0SElZZ0RKNGR0UUtEMEw5MzZyaS9Nam80RHkzZwpsZng5dDBJVmtrZUwyRzdvZHkxNGxRSURBUUFCb3hBd0RqQU1CZ05WSFJNRUJUQURBUUgvTUEwR0NTcUdTSWIzCkRRRUJDd1VBQTRJQkFRQ3VTekE1MWVKTFNmRldzVkxzRGlZeFNiWHhxSWQ4dWd5YVlkUUtBU3BjZ09NSkFhbUMKVkhWcVZWQUV4VjlaT1huNnNVd2cyVW1BSVZCdktvT3lCRzJNdFZ4ekhIRXZkUHV2N0RnM3lyTU9EV0piZU1UbwpsM2VFTU5xRFRWNkFBeXB2bmdUaU5Xc0lmbjB3dlRaRmJ2YnFYNFFtRGQyMGxtMytNcXNGZml5em43NENNSjBHCkozdkdOOXBrRzRybUVPQnFkektDUTZ1KzNkckdmU29FSEhQTnpxM3JVTkpQVEdOaU1SdlNUaVZJcGFka0FpY20KL3JhVXhSWHNzQlhYSWI0T05COTMzTHNtNHRLM0VpNHRzYW9ydnhUMXNyd1pzditSblVPOHIrbVhCWE5EU3dWbApGY3QrOFdhVlVyTGdyMlREZ1RrUDYyLzk3NXRZOUZsOG1UQnYKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  certfile: Q2VydGlmaWNhdGU6CiAgICBEYXRhOgogICAgICAgIFZlcnNpb246IDEgKDB4MCkKICAgICAgICBTZXJpYWwgTnVtYmVyOiA0MDk4ICgweDEwMDIpCiAgICAgICAgU2lnbmF0dXJlIEFsZ29yaXRobTogc2hhMjU2V2l0aFJTQUVuY3J5cHRpb24KICAgICAgICBJc3N1ZXI6IENOPVJvb3QtQ0EKICAgICAgICBWYWxpZGl0eQogICAgICAgICAgICBOb3QgQmVmb3JlOiBTZXAgIDggMDk6Mzc6MjIgMjAyMCBHTVQKICAgICAgICAgICAgTm90IEFmdGVyIDogU2VwICA2IDA5OjM3OjIyIDIwMzAgR01UCiAgICAgICAgU3ViamVjdDogQz1CRywgU1Q9U0YsIE89aUZBTywgQ049cmFiYml0bXEtcmFiYml0bXEtaGEucmFiYml0bXEKICAgICAgICBTdWJqZWN0IFB1YmxpYyBLZXkgSW5mbzoKICAgICAgICAgICAgUHVibGljIEtleSBBbGdvcml0aG06IHJzYUVuY3J5cHRpb24KICAgICAgICAgICAgICAgIFJTQSBQdWJsaWMtS2V5OiAoMjA0OCBiaXQpCiAgICAgICAgICAgICAgICBNb2R1bHVzOgogICAgICAgICAgICAgICAgICAgIDAwOmRiOmFkOjk5OjkyOmI5OmMyOjNiOmNlOjViOjViOjAwOjU3OmEzOjkwOgogICAgICAgICAgICAgICAgICAgIGNmOmRkOmE2OjlmOjA4OjgyOjIyOmFkOjA3Ojg3OjRlOmFmOjNjOmViOjg0OgogICAgICAgICAgICAgICAgICAgIGI0OmRjOjNhOmVmOmJkOmNmOjQwOmQ4OjNmOmFkOjE5OjJlOjQ3OjkzOjAyOgogICAgICAgICAgICAgICAgICAgIDc3OmU4OmRmOjA5Ojc2OmRiOjIyOjVhOjAwOmNiOmUxOjVhOmE0OmQyOjg4OgogICAgICAgICAgICAgICAgICAgIDY4OjRmOjY0OmZhOmM2OjUwOjFjOmQ4OjExOjRkOjIyOjUwOmUyOmIzOmZhOgogICAgICAgICAgICAgICAgICAgIDFkOjJiOmI5OmI4OmQwOjc3OmM2OjYyOmZmOjc1OmVkOjM1OmZhOjZlOmFjOgogICAgICAgICAgICAgICAgICAgIDc5Ojg1OmE4OmQyOjdmOmYxOmMwOmQ3OjNkOjFjOjg1OjY3OjQ0OmUwOjQwOgogICAgICAgICAgICAgICAgICAgIGRkOmFjOmFlOjE2OjlkOjBjOjZmOjI0OjFmOjI5OmFiOjE4OmM4OjA3OjVmOgogICAgICAgICAgICAgICAgICAgIGMyOjc4OjU3OmRhOmI3OjJlOjQzOmQ1OmU1OjI5OjE1OjQwOjE1OjU1OmJkOgogICAgICAgICAgICAgICAgICAgIGUwOjY1OmNjOjExOjQ2OjQyOjE1OjlmOjNhOmM1OjcxOjFkOjFiOmJiOjA5OgogICAgICAgICAgICAgICAgICAgIGUzOmVhOmVmOjJjOmJjOjkzOmI4OjBlOmE3OjZjOmQ4OjU2OjU3OjAzOmQzOgogICAgICAgICAgICAgICAgICAgIGE4OjA0OjFhOjA1Ojg2OmFlOjEwOmVhOmM4OmQ4OjZkOjYyOmE2OjU0OmEzOgogICAgICAgICAgICAgICAgICAgIGJhOjUyOmNkOmU0OmNmOjc3OmM0OjhiOmQyOmRlOjEzOjk4OmY0OmFjOjUyOgogICAgICAgICAgICAgICAgICAgIGFmOjA5Ojg0OjU5OjhiOmM4OjRhOjY4OjkzOjc3OjFjOjJiOjllOmIyOjg3OgogICAgICAgICAgICAgICAgICAgIGZjOjNkOjczOjI4OmY5OmNlOmQwOmU3OjQ0OmY0Ojc1OjAyOjcxOjczOmQ5OgogICAgICAgICAgICAgICAgICAgIDc1OmIyOjQ4OmI3OjM2OjEyOmNhOjA1OmUyOjMxOjc4OjNkOjNmOjk2OjBiOgogICAgICAgICAgICAgICAgICAgIDkwOjhjOjEzOjc3OjM0OjVjOmYyOjgyOjE2OjkxOjA0OmEwOjJlOjFhOjE0OgogICAgICAgICAgICAgICAgICAgIDNhOjFmCiAgICAgICAgICAgICAgICBFeHBvbmVudDogNjU1MzcgKDB4MTAwMDEpCiAgICBTaWduYXR1cmUgQWxnb3JpdGhtOiBzaGEyNTZXaXRoUlNBRW5jcnlwdGlvbgogICAgICAgICAxZTo3ODphMjpjOTpmZTpmYjo0ODo1Mjo4ZjowMDo5YzozYjowOTo0MTpmMjowNDoyZjpiZDoKICAgICAgICAgOGI6NDA6ZjE6NWE6MjA6ZGU6ZmU6NjA6MGE6ZmQ6NWU6ZTg6MmY6ZWM6OGQ6YTg6Yjk6YjI6CiAgICAgICAgIDY5OmI1OjgxOmRmOjQxOjE0OjUzOjJhOjUzOjU0OmRmOjdkOjVkOjQyOmI1OjBmOmE1OmViOgogICAgICAgICBlNjo1NDowNjoyYzo2ODpiYTplYjo5YjoyMDo2YjowYTo0MTpmMzpjYzo1ODpmNjo2NDo3MzoKICAgICAgICAgYzU6MTk6MzY6MGY6MmE6MTY6ZjY6MWI6NTc6MWM6YjI6NDg6ZmI6Yjg6NGM6MGU6OTg6ZGQ6CiAgICAgICAgIGI2OjBhOjIzOjU5OjJhOjQ0OjZjOjZmOmQxOmU4OmRiOjYzOmRiOjE5OjQwOjgzOjMzOmJhOgogICAgICAgICA3NTplMzphNzpkZjo4ODpmYzoyZDoxMzpmMjpkMDpkZDo5ZDo1MjpmNToxZjpjNjoxOTo3MDoKICAgICAgICAgNjc6NTM6NDI6NTg6MTE6ZmM6YWM6M2M6OTU6NDE6OTk6YjI6NGI6N2I6NGU6YTc6NjA6Zjg6CiAgICAgICAgIDVjOjdkOjljOjA1OjVjOjg2OmJhOmMwOjhiOmE3Ojc2OjQ3OmM4OjcyOjViOmY0OmRmOmMxOgogICAgICAgICA1YzoyYjowMDoxZToyYjo5NzowZTozMjozZDpiYTo3NTphZjo0YzpjMTpjMjpmNTpmYzpiMToKICAgICAgICAgY2I6YWE6YjY6NDc6MDk6YzM6OWM6YmY6N2M6MTY6Nzc6ZTQ6N2Q6YTU6N2I6MjI6ZTM6Y2U6CiAgICAgICAgIGM3OjU1OmIzOmE5OjZiOmQyOjQzOjQ0OjExOjU5OmE2OmNkOmEzOjI5OjQ5OmQ5OjcwOjdjOgogICAgICAgICA5Njo1ZjoxNzpjMDo0ZTpiMzoxYTo1OTo1ZTo5ZTphMjpjZDoxYzpkMjozODo1YTo4NDo2YToKICAgICAgICAgZTg6ZTY6ZDE6MzI6NTc6N2I6MWY6MWY6MmQ6NmI6ZTA6ZjM6ZjA6OWY6ZDQ6MTg6MTM6MWM6CiAgICAgICAgIGU0OjI5OmVmOjM0Ci0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLQpNSUlDMkRDQ0FjQUNBaEFDTUEwR0NTcUdTSWIzRFFFQkN3VUFNQkl4RURBT0JnTlZCQU1NQjFKdmIzUXRRMEV3CkhoY05NakF3T1RBNE1Ea3pOekl5V2hjTk16QXdPVEEyTURrek56SXlXakJSTVFzd0NRWURWUVFHRXdKQ1J6RUwKTUFrR0ExVUVDQXdDVTBZeERUQUxCZ05WQkFvTUJHbEdRVTh4SmpBa0JnTlZCQU1NSFhKaFltSnBkRzF4TFhKaApZbUpwZEcxeExXaGhMbkpoWW1KcGRHMXhNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDCkFRRUEyNjJaa3JuQ084NWJXd0JYbzVEUDNhYWZDSUlpclFlSFRxODg2NFMwM0RydnZjOUEyRCt0R1M1SGt3SjMKNk44SmR0c2lXZ0RMNFZxazBvaG9UMlQ2eGxBYzJCRk5JbERpcy9vZEs3bTQwSGZHWXY5MTdUWDZicXg1aGFqUwpmL0hBMXowY2hXZEU0RURkcks0V25ReHZKQjhwcXhqSUIxL0NlRmZhdHk1RDFlVXBGVUFWVmIzZ1pjd1JSa0lWCm56ckZjUjBidXduajZ1OHN2Sk80RHFkczJGWlhBOU9vQkJvRmhxNFE2c2pZYldLbVZLTzZVczNrejNmRWk5TGUKRTVqMHJGS3ZDWVJaaThoS2FKTjNIQ3Vlc29mOFBYTW8rYzdRNTBUMGRRSnhjOWwxc2tpM05oTEtCZUl4ZUQwLwpsZ3VRakJOM05GenlnaGFSQktBdUdoUTZId0lEQVFBQk1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQWVlS0xKCi92dElVbzhBbkRzSlFmSUVMNzJMUVBGYUlONytZQXI5WHVndjdJMm91YkpwdFlIZlFSUlRLbE5VMzMxZFFyVVAKcGV2bVZBWXNhTHJybXlCckNrSHp6RmoyWkhQRkdUWVBLaGIyRzFjY3Nrajd1RXdPbU4yMkNpTlpLa1JzYjlIbwoyMlBiR1VDRE03cDE0NmZmaVB3dEUvTFEzWjFTOVIvR0dYQm5VMEpZRWZ5c1BKVkJtYkpMZTA2bllQaGNmWndGClhJYTZ3SXVuZGtmSWNsdjAzOEZjS3dBZUs1Y09NajI2ZGE5TXdjTDEvTEhMcXJaSENjT2N2M3dXZCtSOXBYc2kKNDg3SFZiT3BhOUpEUkJGWnBzMmpLVW5aY0h5V1h4ZkFUck1hV1Y2ZW9zMGMwamhhaEdybzV0RXlWM3NmSHkxcgo0UFB3bjlRWUV4emtLZTgwCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  keyfile: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb2dJQkFBS0NBUUVBMjYyWmtybkNPODViV3dCWG81RFAzYWFmQ0lJaXJRZUhUcTg4NjRTMDNEcnZ2YzlBCjJEK3RHUzVIa3dKMzZOOEpkdHNpV2dETDRWcWswb2hvVDJUNnhsQWMyQkZOSWxEaXMvb2RLN200MEhmR1l2OTEKN1RYNmJxeDVoYWpTZi9IQTF6MGNoV2RFNEVEZHJLNFduUXh2SkI4cHF4aklCMS9DZUZmYXR5NUQxZVVwRlVBVgpWYjNnWmN3UlJrSVZuenJGY1IwYnV3bmo2dThzdkpPNERxZHMyRlpYQTlPb0JCb0ZocTRRNnNqWWJXS21WS082ClVzM2t6M2ZFaTlMZUU1ajByRkt2Q1lSWmk4aEthSk4zSEN1ZXNvZjhQWE1vK2M3UTUwVDBkUUp4YzlsMXNraTMKTmhMS0JlSXhlRDAvbGd1UWpCTjNORnp5Z2hhUkJLQXVHaFE2SHdJREFRQUJBb0lCQUFMSU9nK3ZwcFFYVXZUZQpGajRPRVhQZkxsaHZQWDB2Z1RrdjR2ZWdvS0hCWlZQa0VoQXJEa2dwVytLeXYwNEZ0UnI2UDM4Z1QzUzFMeTB6CmFRN0lXcHkwV3drcGZ1NldVNml2M0RxM2lXMnFkcXErVFlJSmt2aGYydElraHpYem05dWQvSVI4QUZWT3ZQLzQKM0hSMHVkdWRRV3ZYVG9FNVp6OGE3Ynd3SzgvRHB6V1ZOeVR4Y25BQ3c0R0lxZnU5K2hFOWw2ZmsrS3FDdjFQSQp0amdsUlN0SjZjT2Z2VFE0UmJEMS9XY1hXVWtobmdTbHhzSS9TVG9LUS9PbkE4OEJPajhpRFdKeEtMUnVXNFJUCmU0RUxyVllmTkg2dk5tOXArVHc3QVpxZFVvRElZWTVjcWQyTGV1TDlDYURRNk9PYTFuWFZHbGdpUC9IdEdaZ1kKeGJDYVl3RUNnWUVBOFVMbnRqOW9McHR6aWk4RUprRndPTTdrZU5FMEk2eEVMTGZpYjVHYXZoa0svSnZjNXFISgozbHpMSXB1R1ZuT0RWY281N3JGZDFjTlF2WXlnbERNK01XaFd3K2VkUXRoTmp5d2FsY29CaUd0UjRENFBTWFhwClFIcGJaNEhXSXdTZGhnTDdzOVFIUU11a095QVEwakRPcnA1LzJ4MWNoNkpPZktLMkxNcldaTUVDZ1lFQTZSa24KYWlSWEhvYThtL2oyaHYyU2VTS2lkZ3BWNHZMNVpHZGhGdC9uNGNaYzZ1VlhXU1ZubnhLTE9Udm50a01BUlZyNgpVMVdNbU5FVy9jVHBxaG9GUDhMM2NOY1lGWmdDZFZIQkd5VEV6WXpBR1BLR3NIQ2wwNW5lZjM3cWt0L1pJZ25wCm9KNnpNTjc0RU9vMGlaelhGRTN4VWE4dlJteTR6azZ0bmkvQjl0OENnWUJvUXdPajdPNzNCVkwvS3FaZWFmVTMKZDZHZzNMZnRtcXF6c0p2NG56SUNhUXdvY3FzYU9Gem03YThUdTZab2dlOEdDaWpURUc5K3k3TisxdUVtYXFhNwo3MTFmdUI1c0h0SVZ4M2VOdUFqRmphdUtmd2RZTmM2aGdMOHpraGFhZDRvanVmSlFtcGF2MTlHWGc1b0JXL3BWCjJFVmt5ZUdNOUFWN00wNExPWFZCZ1FLQmdINnVOZmFBYzN4YW0yeGszSTQyaHdFZ2FveWVSMWtFMWJiVVhEYVQKVHpFcm5kbm05QmExdG1BRU12ZlM3N1hsS2VPSGN4NFJFMDBGN1duVE4yNURuL0NzSTlBR2hjZE9pcDk1NCttOQpqTnR0RUFVKzRTWkl3a2FDakNKY05sM0dHL3BjeXNTSkd6ZUhKZWdEY0xRTk1mS04vWVY0SU1nMFZDZURLT1ljCmJGeWZBb0dBYXNLbERvWUljdnhJbDVMSWtKVGtudDVqSU94TE9pMjlHYUVVV3Q4UUNGWFdwUjBHM2ZSWFMvcDMKK3FuU0dEbTJzSmZZemh6MnlFMndUNEM4elZRQmxrRkZSS2lVM0NOd0hsUDUrT2I5NUM2cjZidklwOUxUQWRCNwo2NStmMDQ3MHYyalJ6WFhObGZlNmRFZHRWTnZJY1VsZkhSbHh5d0tHdUEyeHJDZW94enc9Ci0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==
+
+  ## Extra volumes for statefulset
+extraVolumes: []
+
+## Extra volume mounts for statefulset
+extraVolumeMounts: []
+
+## Authentication mechanism
+## Ref: http://www.rabbitmq.com/authentication.html
+rabbitmqAuth:
+  enabled: true
+
+  config: |
+    # auth_mechanisms.1 = PLAIN
+    # auth_mechanisms.2 = AMQPLAIN
+    # auth_mechanisms.3 = EXTERNAL
+
+## Automatic Partition Handling Strategy (split brain handling)
+## Ref: https://www.rabbitmq.com/partitions.html#automatic-handling
+## Note: pause-if-all-down is not supported without using a custom configmap since it requires extra
+## configuration.
+
+rabbitmqClusterPartitionHandling: autoheal
+
+## Authentication backend
+## Ref: https://github.com/rabbitmq/rabbitmq-auth-backend-http
+rabbitmqAuthHTTP:
+  enabled: true
+
+  config: |
+    # auth_backends.1 = http
+    # auth_http.user_path     = http://some-server/auth/user
+    # auth_http.vhost_path    = http://some-server/auth/vhost
+    # auth_http.resource_path = http://some-server/auth/resource
+    # auth_http.topic_path    = http://some-server/auth/topic
+
+## LDAP Plugin
+## Ref: http://www.rabbitmq.com/ldap.html
+rabbitmqLDAPPlugin:
+  enabled: false
+
+  ## LDAP configuration:
+  config: |
+    # auth_backends.1 = ldap
+    # auth_ldap.servers.1  = my-ldap-server
+    # auth_ldap.user_dn_pattern = cn=${username},ou=People,dc=example,dc=com
+    # auth_ldap.use_ssl    = false
+    # auth_ldap.port       = 389
+    # auth_ldap.log        = false
+
+## MQTT Plugin
+## Ref: http://www.rabbitmq.com/mqtt.html
+rabbitmqMQTTPlugin:
+  enabled: false
+
+  ## MQTT configuration:
+  config: |
+    # mqtt.default_user     = guest
+    # mqtt.default_pass     = guest
+    # mqtt.allow_anonymous  = true
+
+## Web MQTT Plugin
+## Ref: http://www.rabbitmq.com/web-mqtt.html
+rabbitmqWebMQTTPlugin:
+  enabled: false
+
+  ## Web MQTT configuration:
+  config: |
+    # web_mqtt.ssl.port       = 12345
+    # web_mqtt.ssl.backlog    = 1024
+    # web_mqtt.ssl.certfile   = /etc/cert/cacert.pem
+    # web_mqtt.ssl.keyfile    = /etc/cert/cert.pem
+    # web_mqtt.ssl.cacertfile = /etc/cert/key.pem
+    # web_mqtt.ssl.password   = changeme
+
+## STOMP Plugin
+## Ref: http://www.rabbitmq.com/stomp.html
+rabbitmqSTOMPPlugin:
+  enabled: false
+
+  ## STOMP configuration:
+  config: |
+    # stomp.default_user = guest
+    # stomp.default_pass = guest
+
+## Web STOMP Plugin
+## Ref: http://www.rabbitmq.com/web-stomp.html
+rabbitmqWebSTOMPPlugin:
+  enabled: false
+
+  ## Web STOMP configuration:
+  config: |
+    # web_stomp.ws_frame = binary
+    # web_stomp.cowboy_opts.max_keepalive = 10
+
+## Prometheus Plugin
+## Ref: https://www.rabbitmq.com/prometheus.html
+rabbitmqPrometheusPlugin:
+  enabled: true
+
+  ## NodePort
+  nodePort: null
+
+  ## metrics port, overrides configuration:
+  ## prometheus.tcp.port
+  port: 15692
+
+  ## metrics path, overrides configuration:
+  ## prometheus.path
+  path: /metrics
+
+  ## Prometheus configuration:
+  ## https://github.com/rabbitmq/rabbitmq-prometheus
+  config: |
+   ## prometheus.path and prometheus.tcp.port can be set above
+
+## AMQPS support
+## Ref: http://www.rabbitmq.com/ssl.html
+rabbitmqAmqpsSupport:
+  enabled: true
+
+  # NodePort
+  amqpsNodePort: 5671
+
+  # SSL configuration
+  config: |
+       listeners.ssl.default             = 5671
+       ssl_options.cacertfile            = /etc/cert/cacert.pem
+       ssl_options.certfile              = /etc/cert/cert.pem
+       ssl_options.keyfile               = /etc/cert/key.pem
+       ssl_options.verify                = verify_none
+       ssl_options.fail_if_no_peer_cert  = false
+  #
+## Number of replicas
+replicaCount: 3
+
+image:
+  repository: nexus.secure.ifao.net:9343/rabbitmq
+  tag: 3.8.9-alpine
+  pullPolicy: IfNotPresent
+  ## Optionally specify an array of imagePullSecrets.
+  ## Secrets must be manually created in the namespace.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  ##
+  pullSecrets:
+    - nexus
+busyboxImage:
+  repository: nexus.secure.ifao.net:9343/busybox
+  tag: 1.30.1
+  pullPolicy: IfNotPresent
+
+## Duration in seconds the pod needs to terminate gracefully
+terminationGracePeriodSeconds: 10
+
+service:
+  annotations: {}
+  clusterIP: None
+
+  ## List of IP addresses at which the service is available
+  ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
+  ##
+  externalIPs: []
+
+  loadBalancerIP: ""
+  externalTrafficPolicy: ""
+  loadBalancerSourceRanges: []
+  type: ClusterIP
+
+  ## Customize nodePort number when the service type is NodePort
+  ### Ref: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  ###
+  epmdNodePort: 32562
+  amqpNodePort: 32560
+  managerNodePort: 30129
+
+podManagementPolicy: OrderedReady
+
+## Statefulsets rolling update update strategy
+## Ref: https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/#rolling-update
+##
+updateStrategy: OnDelete
+
+## Statefulsets Pod Priority
+## Ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass
+## priorityClassName: ""
+
+## We usually recommend not to specify default resources and to leave this as
+## a conscious choice for the user. This also increases chances charts run on
+## environments with little resources, such as Minikube. If you do want to
+## specify resources, uncomment the following lines, adjust them as necessary,
+## and remove the curly braces after 'resources:'.
+## If you decide to set the memory limit, make sure to also change the
+## rabbitmqMemoryHighWatermark following the formula:
+##   rabbitmqMemoryHighWatermark = 0.4 * resources.limits.memory
+##
+resources:
+   limits:
+     cpu: 2
+     memory: 4Gi
+   requests:
+     cpu: 200m
+     memory: 2Gi
+initContainer:
+  resources:
+  #   limits:
+  #     cpu: 100m
+  #     memory: 128Mi
+     requests:
+       cpu: 200m
+       memory: 256Mi
+
+## Additional init containers
+extraInitContainers: []
+
+## Additional containers
+extraContainers: []
+
+## Use an alternate scheduler, e.g. "stork".
+## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+##
+# schedulerName:
+
+## Data Persistency
+persistentVolume:
+  enabled: false
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  # storageClass: "-"
+  ## selector can be used to match an existing PersistentVolume
+  selector: {}
+  name: data
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+  annotations: {}
+  labels: {}
+
+## Node labels for pod assignment
+## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+##
+nodeSelector: {}
+
+## Node tolerations for pod assignment
+## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#taints-and-tolerations-beta-feature
+##
+tolerations: []
+
+## Extra Annotations to be added to pod
+podAnnotations: {}
+
+## Extra Annotations to be added to the StatefulSet
+statefulSetAnnotations: {}
+
+## Pod affinity
+## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+podAntiAffinity: soft
+podAntiAffinityTopologyKey: "kubernetes.io/hostname"
+
+## Affinity settings
+## Defining 'affinity' will disable any podAntiAffinity settings.
+## If you still need anti-affinity, you must include the configuration here.
+##
+affinity: {}
+
+## Create default configMap
+##
+existingConfigMap: false
+
+## Add additional labels to all resources
+##
+extraLabels: {}
+
+## Role Based Access
+## Ref: https://kubernetes.io/docs/admin/authorization/rbac/
+##
+rbac:
+  create: true
+
+## Service Account
+## Ref: https://kubernetes.io/docs/admin/service-accounts-admin/
+##
+serviceAccount:
+  create: true
+
+  ## The name of the ServiceAccount to use.
+  ## If not set and create is true, a name is generated using the fullname template
+  # name:
+
+  ## Automount API credentials for a service account.
+  ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#use-the-default-service-account-to-access-the-api-server
+  automountServiceAccountToken: true
+
+ingress:
+  ## Set to true to enable ingress record generation
+  enabled: false
+
+  path: /
+
+  ## The list of hostnames to be covered with this ingress record.
+  ## Most likely this will be just one host, but in the event more hosts are needed, this is an array
+  ## hostName: foo.bar.com
+
+  ## Set this to true in order to enable TLS on the ingress record
+  tls: false
+
+  ## If TLS is set to true, you must declare what secret will store the key/certificate for TLS
+  tlsSecret: myTlsSecret
+
+  ## Ingress annotations done as key:value pairs
+  annotations: {}
+  #  kubernetes.io/ingress.class: nginx
+
+livenessProbe:
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  exec:
+    command:
+      - /bin/bash
+      - -ec
+      - rabbitmq-diagnostics -q check_running
+
+readinessProbe:
+  initialDelaySeconds: 20
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 6
+  exec:
+    command:
+      - /bin/bash
+      - -ec
+      - rabbitmq-diagnostics -q check_running
+
+# Specifies an existing secret to be used for RMQ password, management user password and Erlang Cookie
+existingSecret: ""
+
+
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+##
+securityContext:
+  fsGroup: 1000590000
+  runAsGroup: 1000590000
+  runAsNonRoot: true
+  runAsUser: 1000590000
+
+## Sets environment variables for the rabbitmq container
+env: {}
+
+prometheus:
+  ## Configures Prometheus Exporter to expose and scrape stats.
+  exporter:
+    enabled: true
+    env: {}
+    image:
+      repository: nexus.secure.ifao.net:9343/kbudde/rabbitmq-exporter
+      tag: v1.0.0-RC7.1
+      pullPolicy: IfNotPresent
+
+    ## Port Prometheus scrapes for metrics
+    port: 9090
+    ## Comma-separated list of extended scraping capabilities supported by the target RabbitMQ server
+    capabilities: "bert,no_sort"
+
+    ## Allow overriding of container resources
+    resources:
+      limits:
+        cpu: 200m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 100Mi
+
+  ## Prometheus is using Operator.  Setting to true will create Operator specific resources like ServiceMonitors and Alerts
+  operator:
+    ## Are you using Prometheus Operator? [Blog Post](https://coreos.com/blog/the-prometheus-operator.html)
+    enabled: false
+
+    ## Configures Alerts, which will be setup via Prometheus Operator / ConfigMaps.
+    alerts:
+      ## Prometheus exporter must be enabled as well
+      enabled: false
+
+      ## Selector must be configured to match Prometheus Install, defaulting to whats done by Prometheus Operator
+      ## See [CoreOS Prometheus Chart](https://github.com/coreos/prometheus-operator/tree/master/helm)
+      selector:
+        role: alert-rules
+      labels: {}
+
+    serviceMonitor:
+      ## Interval at which Prometheus scrapes RabbitMQ Exporter
+      interval: 10s
+
+      # Namespace Prometheus is installed in
+      namespace: monitoring
+
+      ## Defaults to whats used if you follow CoreOS [Prometheus Install Instructions](https://github.com/coreos/prometheus-operator/tree/master/helm#tldr)
+      ## [Prometheus Selector Label](https://github.com/coreos/prometheus-operator/blob/master/helm/prometheus/templates/prometheus.yaml#L65)
+      ## [Kube Prometheus Selector Label](https://github.com/coreos/prometheus-operator/blob/master/helm/kube-prometheus/values.yaml#L298)
+      selector:
+        prometheus: kube-prometheus
+
+## Kubernetes Cluster Domain
+clusterDomain: cluster.local
+
+## Pod Disruption Budget
+podDisruptionBudget:
+   maxUnavailable: 1
+   #minAvailable: 1
+
+lifecycle: {}

@@ -1,0 +1,6 @@
+V	310606141422Z		1000	unknown	/C=BG/ST=SF/O=iFAO/CN=mongodb-replicaset.mongodb
+V	310606141422Z		1001	unknown	/C=BG/ST=SF/O=iFAO/CN=keycloak.apps.toc.sofia.ifao.net
+V	310606141422Z		1002	unknown	/C=BG/ST=SF/O=iFAO/CN=rabbitmq-rabbitmq-ha.rabbitmq
+V	310606141423Z		1003	unknown	/C=BG/ST=SF/O=iFAO/CN=config-server.config
+V	310606141423Z		1004	unknown	/C=BG/ST=SF/O=iFAO/CN=ccbd-master.ccbd
+V	310623065654Z		1005	unknown	/C=BG/ST=SF/O=iFAO/CN=notify.ccbd

@@ -1,0 +1,1295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Version:    4.75
+
+History:
+Version     Changes
+=======     =======
+    4.75    Added AHM_AVH Hotel supplier
+    4.74    Added new value BSP_PAYMENT to EnumPaymentType
+    4.73    Added new attribute OriginalCreditCard/@accountNumber
+    4.72    Added new element TripDetailsCar/CarFees CYT-13492
+    4.71    Removed CARO, BEST_WESTERN and EAN from EnumInventorySystem CYT-3498 CYT-5300
+    4.70    Added attribute RailSubsegment/@totalPrice
+    4.69    Added: MANUAL to EnumAirTicketType
+    4.68    Added:
+                 - new enumeration POLICY_GROUP in EnumCorporateOrganization
+                 - new element AirSubsegment/FlightBaggage
+                 - new element AirSubsegment/FlightSeat
+                 - new element AirSubsegment/FlightMeal
+    4.67    Added AHM_HCORPO Hotel supplier
+    4.66    Added:
+                 - new attribute Profile/@gender
+                 - new enumeration for EnumGender
+    4.65    Added:
+                 - new attribute TripDetailsHotel/@fax
+                 - new attribute TripDetailsHotel/@postalcode
+                 - new attribute TripDetailsHotel/@email
+                 - new attribute TripDetailsEvent/@fax
+                 - new attribute TripDetailsEvent/@postalcode
+                 - new attribute TripDetailsEvent/@email
+    4.64    Added:
+                 - new values ACCOUNT_WITH_AIRLINE to EnumPaymentType
+                 - new attribute Payment/@paidByCompany
+    4.63    Added attribute TripDetail/@fareLogixLocator
+    4.62    Added OBB (Austrian Rail) to EnumInventorySystem
+    4.61    Added:
+                - attribute Price/@source (CYT-7474 Display price in the currency of the provider, company or
+                 first destination)
+    4.60    Extended the list of supported user titles
+    4.59    Added:
+                - GSN to EnumInventorySystem
+                - attribute AirSubsegment/@codeShared
+                - attribute TripDetailsHotel/@statusCode
+                - attribute TripDetailsHotel/@planCode
+                - attribute TripDetailsHotel/@roomCode
+                - attribute TripDetailsCar/@statusCode
+                - attribute TripDetailsCar/@rateCode
+                - attribute Profile/@GUID
+    4.58    Removed TRAVELRES, PHOXML from EnumInventorySystem
+            Removed CMSF from EnumInventorySystem
+    4.57    Added:
+                - TXO to EnumInventorySystem
+                - element  AirSubSegment/CarbonEmission
+                - attribute  TravelPolicyAlert/@noHotelReasonCode
+                - attribute  TravelPolicyAlert/@noHotelExplanation
+    4.56    Added:
+                - FR_1A (SNCF PAO)
+    4.55    Added:
+                - AHM_HRS Hotel supplier
+                - element OriginalCreditCard
+                - Payment/OriginalCreditCard
+    4.54    Added BCD_TSH
+            Added AOT Hotel supplier
+    4.53    Added:
+                - attribute AirSubSegment/@originIATACode
+                - attribute AirSubSegment/@destinationIATACode
+                - attribute RailSubSegment/@originIATACode
+                - attribute RailSubSegment/@destinationIATACode
+    =.==    Added:
+                - element GeoLocation
+                - EnumRailTicketType
+                - EnumAirTicketType
+                - attribute Action/@creationDate
+                - attribute TripDetailsAir/@ticketType
+                - TripDetailsHotel/GeoLocation
+                - attribute TripDetailsRail/@ticketType
+                - RailSubsegment/GeoLocation
+                - TripDetailsCar/GeoLocation
+    4.52    Added advanceReasonCode in TravelPolicyAlert
+            Enhance cCBD with Flexible Format for AirPlus/Itelya
+    4.51    Added (FGT Amadeus GRT supplier FlygTaxi)
+    4.50    Added (MYC Amadeus GRT supplier MyCab)
+            Added RENFE_1A to EnumInventorySystem
+    =.==    Added AVIANCA_BR, AZUL, GOL, VOLARIS to EnumInventorySystem
+    =.==    Added new values PAY_LATER to EnumPaymentType
+    4.49    Added (IT_1A Amadeus RWS supplier TrenItalia)
+    =.==    Added new values AGENCY, BILLBACK, AMABILLBACK, CENTRALBILLING, ECREDIT to EnumPaymentType
+    4.48    Added TripDetailsEvent/@cancellationPolicy
+    4.47    Removed THRIFTY, ALAMO, TERSTAPPEN, HDESSO, HOTELZON, TQ3_EBOOK,
+            RAIL1, RAIL1WEB, EVOLVIWEB from EnumInventorySystem.
+    4.46    Added Amadeus Web Service Provider - Swedish Rail - SE_1A
+    4.45    CYT-1930 Enhancement for Spanish Resident Discounts
+    =.==    Added:
+                - attribute AirPrices/@spanishResidentFare
+    =.==    CYT-2867 BMW: Reason Code Free Text for Hotel Booking must be transferred via cCODT
+            Added:
+                - attribute TravelPolicyAlert/@reasonCodeComment
+    4.44    DT 1982 Implement New Hotel VDA Provider CWT Client Hotel Platform - Iteration 1
+    4.43    DT 33216 cCBD: Additional Information Needed for Booking Data Transmission to Amadeus BI (Priority 1 Data)
+    =.==    attribute preferred was moved from AirSubSegment to TripDetailsAir and from RailSubSegment to TripDetailsRail
+    4.42    DT#32754 cAE: Introduce Middle Name in Personal Data
+    4.41    Changed LC2A to SWAB
+    4.40    Added LC2A to EnumInventorySystem
+            Added CDS to EnumInventorySystem
+    4.39    Support New GDS 'MEETAGO'
+    4.38    Added a new price type PENALTY, NONREF_FARE, NONREF_TAX (DT #28077)
+    4.37    Support New GDS Cube Channel 'AIDL' for Flight Bookings
+    4.36    Added Trip/@globalTripId
+    4.35    Added EAN to EnumInventorySystem
+    4.34    Add Rail provider confirmation number
+    4.33    Added MYDRIVER (DT #28213)
+    4.32    Added cytric appCLOUD Bookings data (DT #28181)
+    =.==    Added:
+                - CLOUDAPP_PROVIDER to EnumInventorySystem
+                - CLOUDAPP to EnumTripDetailType
+                - TripDetailsCloud element to TripDetail
+    4.31    Added CPK to EnumInventorySystem
+    4.30    Added NS to EnumInventorySystem
+            Renamed RAIL1 to SNCB in EnumInventorySystem
+    4.29    Added BUSINESS and PREMIER to EnumRailServiceClass
+    4.28    Added BOOKCOM, SJ to EnumInventorySystem
+    4.27    Added BUDGET to EnumInventorySystem
+    =.==    Added REJECTEDNOTCANCELED to EnumApprovalStatus
+    4.26    Added EHOTEL to EnumInventorySystem
+    =.==    Added AMTRAK, RENFE and VIARAIL to EnumInventorySystem
+    4.25    Added Trip/@approvalRejectReasonCode
+    =.==    Added:
+                - attribute TripDetail/@originIATACode
+                - attribute TripDetail/@originIATAName
+                - attribute TripDetail/@destinationIATACode
+                - attribute TripDetail/@destinationIATAName
+                - element HotelRate
+                - element HotelRateInfo
+                - element RailSeat
+    4.24    Added cTW expense data
+    =.==    Added:
+                - attribute TripDetail/@originCountry
+                - attribute TripDetail/@destinationCountry
+                - attribute TripDetailsHotel/@cancellationPolicy
+                - attribute AirSubsegment/@direction
+                - attribute AirSubsegment/@operatedByAirlineCode
+                - attribute AirSubsegment/@originTerminal
+                - attribute AirSubsegment/@destinationTerminal
+                - attribute AirSubsegment/@originCityCode
+                - attribute AirSubsegment/@originCity
+                - attribute AirSubsegment/@destinationCityCode
+                - attribute AirSubsegment/@destinationCity
+                - attribute AirSubsegment/@originCountry
+                - attribute AirSubsegment/@destinationCountry
+                - attribute AirSubsegment/@equipment
+                - attribute RailSubsegment/@direction
+                - attribute RailSubsegment/@originTrack
+                - attribute RailSubsegment/@destinationTrack
+                - attribute RailSubsegment/@trainNumber
+                - attribute FreeDataField/@costCenter
+                - attribute Trip/@lastUpdatedDateAndTime
+            Removed ASSISTED_BOOKING from EnumPassiveType.
+    4.23    Added CRC to EnumInventorySystem
+    4.23    Removed type EnumRailCardType.
+            Changed type of attribute RailCard/@type from EnumRailCardType to String.
+    4.22    Added GERMANWINGS to EnumInventorySystem
+    4.21    Added NONREF, CASH, CHECK to EnumPaymentType
+    4.20    Added a new price type TRAVELER_FEE.
+            Added optional attributes Price/@profileId, Price/@providerFeeCode and Price/@feeDescription
+    4.19    Added EnumBookingSource.
+            Added attributes:
+              TripDetail/@bookingSource
+    4.18    Added Tickets element to AirSubsegment. Tickets has the attributes:
+              Tickets/@number
+              Tickets/@profileId
+    4.17    Added EVOLVI_XML to EnumInventorySystem
+    4.16    Added ENTERPRISE to EnumInventorySystem
+    4.15    Added attributes TripDetailsAir/@ticketIssued, /CorporateOrganization/@id and /CorporateOrganization/@extRef
+            New elements added to EnumRailCardType:
+              DBAHN_BCB25_1, DBAHN_BCB25_2, DBAHN_BCB50_1, DBAHN_BCB50_2.
+            New element added to EnumProfileRole: APPROVER.
+            Added EnumApprovalStatus and EnumApprovalSource.
+            Added attributes:
+              Trip/@approvalStatus
+              Trip/@approvalSource
+              Trip/@approvalDueDate
+              Trip/@approvalDateAndTime
+              Trip/@approverComment
+              Trip/@reasonForThisTrip
+              TripDetail/@onHold
+            Added optional Alternatives to BookingDetails, to list for instance
+             the unselected Air Options available for this trip.
+    4.14    Added telefaxPickUpStation, telefaxReturnStation, emailPickUpStation, emailReturnStation to TripDetailsCar
+    4.13    Added Phoenix Unlimited XML to EnumInventorySystem
+    4.12    Added Best Western to EnumInventorySystem
+    4.11    Added Trip/@cytricRequestCode
+            Added TripDetail/@cytricRequestDetailNumber
+    4.10    Removed type EnumCreditCardType.
+            Added new type CCCompanyCode.
+            Changed type of attribute CreditCard/@companyCode from EnumCreditCardType to CCCompanyCode.
+    4.9     Added PREMIER_INN to EnumInventorySystem
+            Added AT to EnumCreditCardType
+    4.8     Added SWABIZ to EnumInventorySystem
+    4.7     Removed NEGOTIATED and PRIVATE from EnumFareSource
+    4.6     Added CMSF to EnumInventorySystem
+    4.5     Added HDESSO to EnumInventorySystem
+    4.4     Added SNCF, TRAINLINE, RAIL1 to EnumInventorySystem
+    4.3     Added HILTON to EnumInventorySystem
+    4.2     Added EINVOICING to EnumPaymentType
+    4.1     Added CARO to EnumInventorySystem
+    4.0     Changed the semantics of the Prices element, which is now
+            delivered for the booking as a whole.
+            The AirPrices element is introduced, and delivered per pricing
+            group (TST).
+            Added ticketingDate to TripDetailsAir.
+            Introduced HighestFare, LowestFare as children of TripDetailsAir.
+            Added airlineCode to AirSubsegment.
+            Added stars to TripDetailsHotel.
+            Introduced CarCategory, CarType, CarTransmission, CarMiscellaneous
+            as children of TripDetailsCar.
+            Added area code of origin and destination, as well as country code.
+            Introduced ProfileReference as a child of TripDetail.
+    3.3     Added new optional attribute Profile/@loginName
+    3.2     Added RAIL1WEB to EnumInventorySystem
+            Added EVOLVIWEB to EnumInventorySystem
+    3.1     Added HOURLY to EnumPricesType
+            Added BASERATE to EnumPricesType
+    3.0     Prices element is now delivered per pricing group.
+            Added fare basis and fare source, reductions and corporate discount numbers, tour code, and a flag for dynamic discounted fares.
+            Added id to AirSubsegment, added airSubsegmentIds to Prices.
+            Made TripDetail/@inventorySystem optional.
+            Added inventoryRecordLocator, passiveSystem, passiveType and passiveRecordLocator to TripDetail.
+    2.6     Added TRAVELRES to EnumInventorySystem
+    2.5     Added TERSTAPPEN to EnumInventorySystem
+    2.4     Added ALAMO to EnumInventorySystem
+    2.3     Added TRAVELFUSION to EnumInventorySystem
+            Added WEBBILLING to EnumPaymentType
+    2.2     Added TQ3_EBOOK to EnumInventorySystem
+    2.1     Added HRS to EnumInventorySystem
+    2.0     Renamed TravelPolicyAlert/@reason to TravelPolicyAlert/@reasonCode
+            Added TravelPolicyAlert/@explanation
+    1.2     Removed SHUTTLE from EnumAirServiceClass
+            Added NVS to EnumInventorySystem
+            Made Trip/@completionDateAndTime optional (because of shuttle flights)
+            Made TripDetail/@completionDateAndTime optional (because of shuttle flights)
+            Made TripDetail/@duration optional (because of shuttle flights)
+    1.1     Changed type of Profile/@id from Long to String
+            Changed type of Payment/@profileId from Long to String
+            Changed type of RailCard/@profileId from Long to String
+    1.0     Initial release
+-->
+
+<!--                   -->
+<!-- DTD2Java settings -->
+<!--                   -->
+
+<!ENTITY % JavaPackage "net.ifao.ccbd.generated">
+
+
+
+<!--
+RE - Regular Expression
+ML - Max Length
+-->
+
+<!--            -->
+<!-- Base types -->
+<!--            -->
+
+<!-- Boolean
+     The values of Boolean are yes/no instead of true/false
+-->
+<!ENTITY % Boolean      "CDATA">
+
+<!-- Tristate
+     The values of Tristate are [YES, NO, UNKNOWN].
+-->
+<!ENTITY % Tristate     "CDATA">
+
+<!-- Integer
+    32-bit signed integer
+-->
+<!ENTITY % Integer      "CDATA">
+
+<!-- Long
+    64-bit signed integer
+-->
+<!ENTITY % Long         "CDATA">
+<!ENTITY % Float        "CDATA">
+<!ENTITY % Double       "CDATA">
+<!ENTITY % String       "CDATA">
+
+<!-- Credit card company code.
+-->
+<!ENTITY % CCCompanyCode  "CDATA">
+
+<!-- DateTime
+    MM/dd/yyyy [HH:mm] - RE: ^\d{2}\/\d{2}\/\d{4}( \d{2}:\d{2})?$ - ML: 16
+-->
+<!ENTITY % DateTime     "CDATA">
+
+<!-- DateAndTime
+    MM/dd/yyyy HH:mm:ss - RE: ^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}$ - ML: 19
+-->
+<!ENTITY % DateAndTime  "CDATA">
+
+<!-- EncryptedNumber
+     Signals that the attribute value could be obfuscated in the request
+-->
+<!ENTITY % EncryptedNumber "CDATA">
+
+<!--                  -->
+<!-- Enumerated types -->
+<!--                  -->
+
+<!--
+If values are changed/added/deleted in any of the following enumerations then
+please make sure to modify file xsl/sapodt/ccbd2odt.xslt accordingly.
+-->
+
+<!ENTITY % EnumAction                "( CREATE | CHANGE | DELETE )" >
+<!ENTITY % EnumProfileRole           "( BOOKER | TRAVELER | APPROVER )" >
+<!ENTITY % EnumGreeting              "( MR | MRS | MISS | MS )" >
+<!ENTITY % EnumCorporateOrganization "( COMPANY | LOCATION | DIVISION | POLICY_GROUP | BUSINESS_UNIT )" >
+<!ENTITY % EnumTripDetailType        "( AIR | HOTEL | CAR | RAIL | CLOUDAPP | EVENT)" >
+<!ENTITY % EnumGender                "( MALE | FEMALE | UNDISCLOSED | UNSPECIFIED )" >
+
+<!--
+If new values are added here then inform cytric Management (Marcel Roehl)
+that they should inform SAP's team responsible for Travel OnDemand about these
+new values.
+-->
+<!ENTITY % EnumInventorySystem       "( AMADEUS | AIDL | GALILEO | SABRE | TRAVELFUSION | AVIS | EUROPCAR | HERTZ | NATIONAL | SIXT | ENTERPRISE | BUDGET | CPK | DERHOTEL.COM | HOTEL.DE | HRS | HILTON | OFFLINE | BIBE | NVS | SNCF | TRAINLINE | SNCB | NS | SWABIZ | PREMIER_INN | EVOLVI_XML | GERMANWINGS | CRC | AMTRAK | RENFE | VIARAIL | SJ | SE_1A | IT_1A | FR_1A | EHOTEL | BOOKCOM | CLOUDAPP_PROVIDER | MYDRIVER | MEETAGO | SWAB | CDS | CWT_CHP | MYC | AVIANCA_BR | AZUL | GOL | VOLARIS | RENFE_1A | FGT | BCD_TSH | AOT | AHM_HRS | GSE | BLL | TXO | GSN | OBB | AHM_HCORPO | AHM_AVH)" >
+<!ENTITY % EnumPassiveSystem         "( AMADEUS | GALILEO | SABRE )" >
+<!ENTITY % EnumPassiveType           "( PASSIVE_PNR | ASSISTED_BOOKING )" >
+<!ENTITY % EnumBookingClass          "( A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z | AN | BN | CN | DN | EN | FN | GN | HN | IN | JN | KN | LN | MN | NN | ON | PN | QN | RN | SN | TN | UN | VN | WN | XN | YN | ZN )" >
+<!ENTITY % EnumPricesType            "( TOTAL | DAILY | WEEKEND | WEEKLY | MONTHLY | PACKAGE | NIGHTLY | HOURLY | BASERATE )" >
+<!ENTITY % EnumPriceType             "( NET | TAX | PROVIDERFEE | CYTRICFEE | TOTAL | TRAVELER_FEE | PENALTY | NONREF_FARE | NONREF_TAX)" >
+<!ENTITY % EnumPriceSource           "( PROVIDER | COMPANY | DESTINATION )">
+<!ENTITY % EnumPaymentType           "( NONREF | CASH | CHECK | CREDITCARD | INVOICE | EVOUCHER | WEBBILLING | EINVOICING | COLLECTIVEINVOICE | AGENCY | BILLBACK | AMABILLBACK | CENTRALBILLING | ECREDIT | PAY_LATER | ACCOUNT_WITH_AIRLINE | BSP_PAYMENT)" >
+<!ENTITY % EnumAirServiceClass       "( FIRST | BUSINESS | PREMIUM_ECONOMY | ECONOMY )" >
+<!ENTITY % EnumRailServiceClass      "( FIRST | SECOND | BUSINESS | PREMIER )" >
+<!ENTITY % EnumRailTicketType        "( TICKETLESS | HOMEPRINT | KIOSK | AGENCY | CORPORATE_KIOSK | STATION | SAME_DAY_OFFICE_DROP | SAME_DAY_DELIVERY | NEXT_DAY_DELIVERY | MAIL | HOMEPRINT_DEMAT | TICKETLESS_DEMAT | DEMAT | ETICKET | EMAIL | METRO_LINK | CONDUCTOR | SMS | TICKETLESS_BY_RESERVATION_NUMBER)" >
+<!ENTITY % EnumAirTicketType         "( MAIL | AIRPORT | ETICKET | PAF | TICKETLESS | AGENCY | MANUAL)" >
+<!-- Fare sources
+     PUBLISHED   - published fare
+     CORPORATE   - negotiated and private corporate fare
+                   For Amadeus this includes corporate negotiated, corporate dynamic discounted, corporate
+                   private (by ATPCO CAT15), and corporate ATPCO negotiated fares (by ATPCO CAT35).
+                   For Galileo this includes all corporate private fares.
+-->
+<!ENTITY % EnumFareSource            "( PUBLISHED | CORPORATE )">
+<!ENTITY % EnumReductionType         "( DISCOUNT | REDUCTION )" >
+
+<!-- Area
+    AF  Africa
+    AS  Asia
+    AU  Australia
+    EU  Europe
+    ME  Middle East
+    NA  North America
+    SA  South America
+-->
+<!ENTITY % EnumArea                  "( AF | AS | AU | EU | ME | NA | SA )">
+
+<!-- Car Category (car class)
+    C  Compact Car
+    E  Economy Car
+    F  Full Size Car (4 doors)
+    I  Midsize Car
+    L  Luxury Car
+    M  Mini Car
+    P  Premium
+    S  Standard
+    X  Special
+    N  Mini Elite
+    H  Economy Elite
+    D  Compact Elite
+    J  Midsize Elite
+    R  Standard Elite
+    G  Full Size Elite
+    U  Premium Elite
+    W  Luxury Elite
+    O  Oversize
+-->
+<!ENTITY % EnumCarCategory    "( C | E | F | I | L | M | P | S | X | N | H | D | J | R | G | U | W | O )">
+
+<!-- Car Type
+    B  2-3 door car
+    C  Car (2- or 4- door)
+    D  4-5 door car
+    F  SUV (sport utility vehicles)
+    J  All Terrain Vehicle
+    K  Commercial Van / Truck
+    L  Limousine
+    P  Pick-up
+    R  Recreational
+    S  Sports car
+    T  Convertible
+    V  Passenger Van
+    W  Wagon / Estate
+    X  Special
+    E  Coupe
+    G  Crossover
+    H  Motor Home
+    M  Monospace
+    N  Roadster
+    Q  Pickup Extended Cab
+    Y  2 Wheel Vehicle
+    Z  Special Offer Car
+-->
+<!ENTITY % EnumCarType    "( B | C | D | F | J | K | L | P | R | S | T | V | W | X | E | G | H | M | N | Q | Y | Z )">
+
+<!-- Car Transmission
+    A  Automatic Unspecified Drive
+    M  Manual Unspecified Drive
+    N  Manual 4WD
+    C  Manuel AWD
+    B  Auto 4WD
+    D  Auto AWD
+-->
+<!ENTITY % EnumCarTransmission "( A | M | N | C | B | D )">
+
+<!-- Car Miscellaneous characteristics (Air Conditioning)
+    N  Unspecified Fuel without A/C
+    R  Unspecified Fuel with A/C
+    W  Winter Tires
+    V  Petrol with A/C
+    Z  Petrol without A/C
+    D  Diesel with A/C
+    Q  Diesel without A/C
+    H  Hybrid with A/C
+    I  Hibrid without A/C
+    E  Electric with A/C
+    C  Electric without A/C
+    L  LPG/Compressed Gas with A/C
+    S  LPG/Compressed Gas without A/C
+    A  Hydrogen with A/C
+    B  Hydrogen without A/C
+    M  Multi Fuel with A/C
+    F  Multi Fuel without A/C
+    U  Ethanol with A/C
+    X  Ethanol without A/C
+-->
+<!ENTITY % EnumCarMiscellaneous "( N | R | W | V | Z | D | Q | H | I | E | C | L | S | A | B | M | F | U | X )">
+<!ENTITY % EnumCarFeeType "(CANCEL)">
+<!ENTITY % EnumApprovalStatus "( TOBEAPPROVED | PREAPPROVED | APPROVED | REJECTED |REJECTEDNOTCANCELED)" >
+<!ENTITY % EnumApprovalSource "( INTERNAL | EXTERNAL | INTANDEXT )" >
+
+<!ENTITY % EnumBookingSource "( ONLINE | OFFLINE )" >
+
+<!--          -->
+<!-- Elements -->
+<!--          -->
+
+<!-- ObjectExchange
+    version - the version of the interface
+-->
+<!ELEMENT ObjectExchange ( Request | Response ) >
+<!ATTLIST ObjectExchange
+    version %String;    #REQUIRED
+>
+
+<!-- Request
+-->
+<!ELEMENT Request ( Recipient, BookingDetails ) >
+<!-- no attributes -->
+
+<!-- Recipient
+-->
+<!ELEMENT Recipient ( Identifications?, Action ) >
+<!-- no attributes -->
+
+<!-- Identifications
+-->
+<!ELEMENT Identifications ( Identification+ ) >
+<!-- no attributes -->
+
+<!-- Identification
+    name  - name of the identification information  - RE: ^([^<>&%\*\#\s]([^<>&%\*\#]*[^<>&%\*\#\s])?)?$ - ML: 40
+    value - value of the identification information - RE: ^([^<>&%\*\#\s]([^<>&%\*\#]*[^<>&%\*\#\s])?)?$ - ML: 256
+-->
+<!ELEMENT Identification EMPTY >
+<!ATTLIST Identification
+    name    %String;    #REQUIRED
+    value   %String;    #REQUIRED
+>
+
+<!-- Action
+    code - the action to be performed
+-->
+<!ELEMENT Action EMPTY >
+<!ATTLIST Action
+    code            %EnumAction;     #REQUIRED
+    creationDate    %DateAndTime;    #IMPLIED
+>
+
+<!-- BookingDetails
+-->
+<!ELEMENT BookingDetails ( Profiles, Trip, Alternatives? ) >
+<!-- no attributes -->
+
+<!-- Profiles
+-->
+<!ELEMENT Profiles ( Profile+ ) >
+<!-- no attributes -->
+
+<!-- Profile
+    id             - the id for this profile                           - RE: ^.{1,256}$ - ML: 256
+    role           - specifies whether the profile contains booker or traveler information
+    greeting       - the booker's or traveler's greeting
+    title          - the booker's or traveler's titles                 - ML: 89
+    firstName      - the first name of the booker or traveler          - RE: ^[[:alpha:]][[:alpha:]\-\. \']*[[:alpha:]\.\']$ - ML: 40
+    middleName     - the middle name of the booker or traveler         - RE: ^[[:alpha:]][[:alpha:]\-\. \']*[[:alpha:]\.\']$ - ML: 40
+    lastName       - the last name of the booker or traveler           - RE: ^[[:alpha:]][[:alpha:]\-\. \']*[[:alpha:]\.\']$ - ML: 40
+    telephone      - the telephone number of the booker or traveler    - RE: ^[\+0-9 \(\)\/\-]+$ - ML: 40
+    fax            - the fax number of the booker or traveler          - RE: ^[\+0-9 \(\)\/\-]+$ - ML: 40
+    mobilePhone    - the mobile phone number of the booker or traveler - RE: ^[\+0-9 \(\)\/\-]+$ - ML: 40
+    eMail          - the e-mail address of the booker or traveler      - RE: ^[A-Za-z0-9\_\-\.]+\@([A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,5}$ - ML: 128
+    employeeNumber - the employeee number of the booker or traveler    - RE: ^.{1,256}$ - ML: 256
+    loginName      - the login of the booker or traveler in cytric v7  - RE: ^.{1,256}$ - ML: 256
+    GUID           - the global user identified for this profile       - RE: ^.:\d{1,256}$ - ML: 258
+-->
+<!ELEMENT Profile ( CorporateOrganizations?, FreeDataFields? ) >
+<!ATTLIST Profile
+    id              %String;            #REQUIRED
+    role            %EnumProfileRole;   #REQUIRED
+    greeting        %EnumGreeting;      #IMPLIED
+    title           %String;            #IMPLIED
+    firstName       %String;            #REQUIRED
+    middleName      %String;            #IMPLIED
+    lastName        %String;            #REQUIRED
+    gender          %EnumGender;        #IMPLIED
+    telephone       %String;            #IMPLIED
+    fax             %String;            #IMPLIED
+    mobilePhone     %String;            #IMPLIED
+    eMail           %String;            #REQUIRED
+    employeeNumber  %String;            #IMPLIED
+    loginName       %String;            #IMPLIED
+    nationality     %String;            #IMPLIED
+    GUID            %String;            #IMPLIED
+>
+
+<!-- CorporateOrganizations
+-->
+<!ELEMENT CorporateOrganizations ( CorporateOrganization+ ) >
+<!-- no attributes -->
+
+<!-- CorporateOrganization
+    name  - the name of the organization the booker or traveler belongs to
+    value - the value of the organization the booker or traveler belongs to - RE: ^.{1,128}$ - ML: 128
+-->
+<!ELEMENT CorporateOrganization EMPTY >
+<!ATTLIST CorporateOrganization
+    name    %EnumCorporateOrganization; #REQUIRED
+    value   %String;                    #REQUIRED
+    id      %String;                    #IMPLIED
+    extRef  %String;                    #IMPLIED
+>
+
+<!-- FreeDataFields
+-->
+<!ELEMENT FreeDataFields ( FreeDataField+ ) >
+<!-- no attributes -->
+
+<!-- FreeDataField
+    name       - the name of a free data field from the booker's or traveler's profile     - RE: ^.{1,128}$ - ML: 128
+    value      - the value of this free data field from the booker's or traveler's profile - RE: ^.{1,256}$ - ML: 256
+    costCenter - indicator whether the free data field is a cost center
+-->
+<!ELEMENT FreeDataField EMPTY >
+<!ATTLIST FreeDataField
+    name        %String;    #REQUIRED
+    value       %String;    #REQUIRED
+    costCenter  %Boolean;   #IMPLIED
+>
+
+<!-- ProfileReference
+    id - the identifier of the referenced profile, see //Profile/@id
+-->
+<!ELEMENT ProfileReference EMPTY>
+<!ATTLIST ProfileReference
+    id    %String;    #REQUIRED
+>
+
+<!-- Alternatives
+    Alternatives to the selected trip, for instance, the unselected Air Options
+    will be listed here.
+-->
+<!ELEMENT Alternatives ( Trip+ ) >
+<!-- no attributes -->
+
+
+<!-- Trip
+    cytricTripNumber      - the trip id within cytric v7
+    externalTripNumber    - the trip id within the customer's system                 - RE: ^.{1,40}$ - ML: 40
+    cytricRequestCode     - cTW Requiest ID
+    creationDateAndTime   - the date and time of the trip creation withing cytric v7
+    identification        - the name or identification of the trip                   - RE: ^.{1,256}$ - ML: 256
+    globalTripId          - the trip id within cytric v7 of coherent bookings
+    purpose               - the reason why the trip is made                          - RE: ^[^<>&%\*\#\?]*$ - ML: 40
+    startDateAndTime      - the date and optionally the time when the trip begins
+    completionDateAndTime - the date and optionally the time when the trip ends
+    approvalStatus        - the actual approval status at the XML creation time
+    approvalDueDate       - date and time till when the trip has to be approved
+                            respectively rejected
+    approvalDateAndTime   - the date and time when the trip was approved.
+    approverComment       - a comment by the approver, regarding the resolution
+                             Max length: 256.
+    reasonForThisTrip     - a reason, entered by the user for approval purposes
+                             Max length: 256.
+    approvalSource        - where the approval was or is to be processed.
+
+    lastUpdatedDateAndTime - the date and time of the last change of the trip,
+                             that cytric is aware of.
+-->
+<!ELEMENT Trip ( TripDetails, ExpenseData? ) >
+<!ATTLIST Trip
+    cytricTripNumber         %Long;          #REQUIRED
+    externalTripNumber       %String;        #IMPLIED
+    cytricRequestCode        %Long;          #IMPLIED
+    creationDateAndTime      %DateAndTime;   #REQUIRED
+    identification           %String;        #IMPLIED
+    globalTripId             %Long;          #IMPLIED
+    purpose                  %String;        #IMPLIED
+    startDateAndTime         %DateTime;      #REQUIRED
+    completionDateAndTime    %DateTime;      #IMPLIED
+    approvalStatus           %EnumApprovalStatus;    #IMPLIED
+    approvalDueDate          %DateAndTime;           #IMPLIED
+    approvalDateAndTime      %DateAndTime;           #IMPLIED
+    approverComment          %String;                #IMPLIED
+    reasonForThisTrip        %String;                #IMPLIED
+    approvalSource           %EnumApprovalSource;    #IMPLIED
+    lastUpdatedDateAndTime   %DateAndTime;           #IMPLIED
+    approvalRejectReasonCode %String;                #IMPLIED
+>
+
+<!-- TripDetails
+-->
+<!ELEMENT TripDetails ( TripDetail+ ) >
+<!-- no attributes -->
+
+<!-- ExpenseData
+    destination - the destination from cTW expense data page
+    destinationCountryCode - the country code from cTW expense data page
+    privUntilDate - the "Personal Time/until" date from cTW expense data page
+    privFromDate - the "Personal Time/from" date from cTW expense data page
+    untilDate - the "Business Travel/until" date from cTW expense data page
+    fromDate - the "Business Travel/from" date from cTW expense data page
+-->
+<!ELEMENT ExpenseData EMPTY >
+<!ATTLIST ExpenseData
+    destination               %String;      #IMPLIED
+    destinationCountryCode    %String;      #IMPLIED
+    privUntilDate             %DateTime;    #IMPLIED
+    privFromDate              %DateTime;    #IMPLIED
+    untilDate                 %DateTime;    #IMPLIED
+    fromDate                  %DateTime;    #IMPLIED
+>
+
+<!-- TripDetail
+    cytricTripDetailNumber     - the trip details id within cytric v7
+    cytricRequestDetailNumber  - cTW Request Segment Id
+    type                       - specifies the type of booking
+    canceled                   - the trip is canceled
+    bookingDateAndTime         - the date and time the booking has been made
+    startDateAndTime           - the date and optionally the time when the service booked begins
+    completionDateAndTime      - the date and optionally the time when the service booked ends
+    duration                   - the time difference between completionDateAndTime and startDateAndTime        - RE: ^(\d{1,3}D\d{1,2}H\d{1,2}M)|(\d{1,3}N)$ - ML: 10
+    origin                     - the origin of the booking (city, airport, railway or car pick-up station)     - RE: ^.{1,1024}$ - ML: 1024
+    destination                - the destination of the booking (city, airport, railway or car return station) - RE: ^.{1,1024}$ - ML: 1024
+    originIATACode             - the IATA code of the origin
+    originIATAName             - the IATA name of the origin                 - RE: ^.{1,1024}$ - ML: 1024
+    destinationIATACode        - the IATA code of the destination
+    destinationIATAName        - the IATA name of the destination            - RE: ^.{1,1024}$ - ML: 1024
+    originCountryCode          - the origin country code of the booking      - RE: ^[A-Z]{2}$ - ML: 2
+    originCountry              - the origin country name of the booking      - RE: ^.{1,1024}$ - ML: 1024
+    destinationCountryCode     - the destination country code of the booking - RE: ^[A-Z]{2}$ - ML: 2
+    destinationCountry         - the destination country name of the booking - RE: ^.{1,1024}$ - ML: 1024
+    originArea                 - the origin area of the booking
+    destinationArea            - the destination area of the booking
+    inventorySystem            - the booking or inventory system accessed for the booking
+    inventoryRecordLocator     - the record locator in the inventory system  - RE: ^.{1,64}$  - ML: 64
+    passiveSystem              - the booking system where the passive PNR was created
+    passiveType                - the type of the passive booking
+    passiveRecordLocator       - the record locator of the passive booking in the booking system - RE: ^.{1,64}$  - ML: 64
+    onHold                     - an on-hold booking status indicator
+    bookingSource              - indicates whether the booking was initially created online or offline
+    fareLogixLocator           - DynaWeb Farelogix PNR
+-->
+<!ELEMENT TripDetail ( Payments?, Prices?, (TripDetailsAir | TripDetailsHotel | TripDetailsEvent| TripDetailsRail | TripDetailsCar | TripDetailsCloud), TravelPolicyAlert?, FreeDataFields?, ProfileReference* ) >
+<!ATTLIST TripDetail
+    cytricTripDetailNumber      %Long;                  #REQUIRED
+    cytricRequestDetailNumber   %Long;                  #IMPLIED
+    type                        %EnumTripDetailType;    #REQUIRED
+    canceled                    %Boolean;               #IMPLIED
+    bookingDateAndTime          %DateAndTime;           #REQUIRED
+    startDateAndTime            %DateTime;              #REQUIRED
+    completionDateAndTime       %DateTime;              #IMPLIED
+    duration                    %String;                #IMPLIED
+    origin                      %String;                #REQUIRED
+    destination                 %String;                #REQUIRED
+    originIATACode              %String;                #IMPLIED
+    originIATAName              %String;                #IMPLIED
+    destinationIATACode         %String;                #IMPLIED
+    destinationIATAName         %String;                #IMPLIED
+    originCountryCode           %String;                #IMPLIED
+    originCountry               %String;                #IMPLIED
+    destinationCountryCode      %String;                #IMPLIED
+    destinationCountry          %String;                #IMPLIED
+    originArea                  %EnumArea;              #IMPLIED
+    destinationArea             %EnumArea;              #IMPLIED
+    inventorySystem             %EnumInventorySystem;   #IMPLIED
+    inventoryRecordLocator      %String;                #IMPLIED
+    passiveSystem               %EnumPassiveSystem;     #IMPLIED
+    passiveType                 %EnumPassiveType;       #IMPLIED
+    passiveRecordLocator        %String;                #IMPLIED
+    onHold                      %Boolean;               #IMPLIED
+    bookingSource               %EnumBookingSource;     #IMPLIED
+    fareLogixLocator            %String;                #IMPLIED
+>
+
+<!-- Payments
+-->
+<!ELEMENT Payments ( Payment+ ) >
+<!-- no attributes -->
+
+<!-- Payment
+    type          - the type of payment used
+    profileId     - the profile to which this payment refers    - RE: ^.{1,256}$ - ML: 256
+-->
+<!ELEMENT Payment ( CreditCard?, OriginalCreditCard?) >
+<!ATTLIST Payment
+    type            %EnumPaymentType;   #REQUIRED
+    profileId       %String;            #REQUIRED
+    paidByCompany   %Boolean;           #IMPLIED
+>
+
+<!-- CreditCard
+    companyCode   - the credit card company code
+    number        - the credit card number       - RE: ^\d{1,20}$ - ML: 20
+    paidByCompany - specifies whether the booking is paid by the company
+-->
+<!ELEMENT CreditCard (CreditCardField*) >
+<!ATTLIST CreditCard
+    companyCode                 %CCCompanyCode;         #REQUIRED
+    number                      %EncryptedNumber;       #REQUIRED
+    cvn                         %EncryptedNumber;       #IMPLIED
+    paidByCompany               %Boolean;               #IMPLIED
+    expireDate                  %DateTime;              #IMPLIED
+    corporateCard               %Boolean;               #IMPLIED
+    cardHolder                  %String;                #IMPLIED
+    cardIsPresentWithTraveller  %Boolean;               #IMPLIED
+>
+
+<!-- OriginalCreditCard
+    companyCode   - the credit card company code
+    number        - the credit card number       - RE: ^\d{1,20}$ - ML: 20
+    paidByCompany - specifies whether the booking is paid by the company
+-->
+<!ELEMENT OriginalCreditCard (CreditCardField*) >
+<!ATTLIST OriginalCreditCard
+    companyCode                 %CCCompanyCode;         #REQUIRED
+    number                      %EncryptedNumber;       #REQUIRED
+    accountNumber               %String;                #IMPLIED
+    cvn                         %EncryptedNumber;       #IMPLIED
+    paidByCompany               %Boolean;               #IMPLIED
+    expireDate                  %DateTime;              #IMPLIED
+    corporateCard               %Boolean;               #IMPLIED
+    cardHolder                  %String;                #IMPLIED
+    cardIsPresentWithTraveller  %Boolean;               #IMPLIED
+>
+<!ELEMENT CreditCardField EMPTY>
+<!ATTLIST CreditCardField
+    code            %String;     #REQUIRED
+    value           %String;     #REQUIRED
+>
+<!-- Prices
+    type                  - the prices type, i.e. total, daily, weekend, etc.
+    source                - the fare source type, i.e. published, negotiated, private or corporate
+-->
+<!ELEMENT Prices ( Price+ , AirPrices* ) >
+<!ATTLIST Prices
+    type           %EnumPricesType;    #REQUIRED
+    source         %EnumFareSource;    #IMPLIED
+>
+
+<!--
+  A Pricing Group (TST)
+    airSubSegmentIds      - a list of segment ID-s (in NMTOKENS format), see AirSubsegment/@id. No limit is imposed on the maximal length.
+    source                - the fare source type, i.e. published, negotiated, private or corporate
+    dynamicDiscountedFare - dynamic discounted fare (yes/no)?
+    spanishResidentFare   - dynamic discounted fare (yes/no)?
+    tourCode              - tour code              - RE: ^.{1,50}$ - ML: 50
+-->
+<!ELEMENT AirPrices ( Price+, Reduction* ) >
+<!ATTLIST AirPrices
+    airSubSegmentIds           %String;            #IMPLIED
+    source                     %EnumFareSource;    #IMPLIED
+    dynamicDiscountedFare      %Boolean;           "no"
+    spanishResidentFare        %Boolean;           "no"
+    tourCode                   %String;            #IMPLIED
+>
+
+<!-- Price
+    profile id - the profile to which this price refers
+    type     - the type of the amount
+    source   - the price source type, i.e. provider, first destination or company
+    currency - the currency relating to the amount - RE: ^[A-Z]{3}$ - ML: 3
+    value    - the amount                          - RE: ^[\-+]\d{8}\.\d{2}?$ - ML: 12
+    providerFeeCode - fee code in case
+    feeDescription  - fee description
+-->
+<!ELEMENT Price EMPTY >
+<!ATTLIST Price
+    profileId       %String;          #IMPLIED
+    type            %EnumPriceType;   #IMPLIED
+    source          %EnumPriceSource; #IMPLIED
+    currency        %String;          #IMPLIED
+    value           %Float;           #IMPLIED
+    providerFeeCode %String;          #IMPLIED
+    feeDescription  %String;          #IMPLIED
+
+>
+
+<!-- Reduction
+    type  - the type of the reduction
+    value - the value or code of the reduction     - RE: ^.{1,50}$ - ML: 50
+-->
+<!ELEMENT Reduction EMPTY >
+<!ATTLIST Reduction
+    type    %EnumReductionType;    #REQUIRED
+    value   %String;               #REQUIRED
+>
+
+<!-- TripDetailsAir
+    ticketingDate   - the ticket issue date.
+    ticketIssued    - indicates if the ticket has been issued.
+    isOption        - identifies this as an Air Option.
+-->
+<!ELEMENT TripDetailsAir ( AirSubsegments, HighestFare?, LowestFare? ) >
+<!ATTLIST TripDetailsAir
+    ticketingDate   %DateTime;           #IMPLIED
+    ticketIssued    %Tristate;           #IMPLIED
+    ticketType      %EnumAirTicketType;  #IMPLIED
+    isOption        %Boolean;            #IMPLIED
+    preferred       %Boolean;            #IMPLIED
+>
+
+<!-- AirSubsegments
+-->
+<!ELEMENT AirSubsegments ( AirSubsegment+ ) >
+<!-- no attributes -->
+
+<!-- AirSubsegment
+    id                         - the segment identifier is valid only for the current document.
+    direction                  - the direction of the segment
+    airlineCode                - the airline code of the air segment
+    airline                    - the airline name of the air segment            - RE: ^.{1,1024}$ - ML: 1024
+    operatedByAirlineCode      - the operating airline code of the air segment
+    inventoryCode              - the flight number of the air segment           - RE: ^\d{1,256}$ - ML: 256
+    origin                     - the origin of the air segment                  - RE: ^.{1,1024}$ - ML: 1024
+    destination                - the destination of the air segment             - RE: ^.{1,1024}$ - ML: 1024
+    originTerminal             - the terminal of the origin airport             - RE: ^.{1,128}$ - ML: 128
+    destinationTerminal        - the terminal of the destination airport        - RE: ^.{1,128}$ - ML: 128
+    originDateAndTime          - the date and optionally the time when the flight departs
+    destinationDateAndTime     - the date and optionally the time when the flight arrives
+    originCityCode             - the origin city code
+    originCity                 - the origin city name                           - RE: ^.{1,1024}$ - ML: 1024
+    destinationCityCode        - the destination city code
+    destinationCity            - the destination city name                      - RE: ^.{1,1024}$ - ML: 1024
+    originCountryCode          - the origin country code of the air segment
+    originCountry              - the origin country name of the air segment     - RE: ^.{1,1024}$ - ML: 1024
+    destinationCountryCode     - the destination country code of the air segment
+    destinationCountry         - the destination country name of the air segment    - RE: ^.{1,1024}$ - ML: 1024
+    originIATACode             - the IATA code of the origin
+    destinationIATACode        - the IATA code of the destination
+    originArea                 - the origin area of the air segment
+    destinationArea            - the destination area of the air segment
+    bookingClass               - the booking class booked for the flight
+    serviceClass               - the service class booked for the flight
+    providerConfirmationNumber - the confirmation number under which the booking is made at the provider - RE: ^.{1,16}$ - ML: 16
+    fareBasis                  - the fare basis                                 - RE: ^.{1,64}$   - ML: 64
+    equipment                  - the aircraft type                              - RE: ^.{1,1024}$ - ML: 1024
+    codeShared                 - the code-shared flight indicator
+-->
+<!ELEMENT AirSubsegment (Tickets*, FlightBaggage*, FlightSeat*, FlightMeal* ,CarbonEmission?) >
+<!ATTLIST AirSubsegment
+    id                          %Integer;               #REQUIRED
+    direction                   %Integer;               #IMPLIED
+    airlineCode                 %String;                #IMPLIED
+    airline                     %String;                #IMPLIED
+    operatedByAirlineCode       %String;                #IMPLIED
+    inventoryCode               %String;                #IMPLIED
+    origin                      %String;                #IMPLIED
+    destination                 %String;                #IMPLIED
+    originTerminal              %String;                #IMPLIED
+    destinationTerminal         %String;                #IMPLIED
+    originDateAndTime           %DateTime;              #IMPLIED
+    destinationDateAndTime      %DateTime;              #IMPLIED
+    originCityCode              %String;                #IMPLIED
+    originCity                  %String;                #IMPLIED
+    destinationCityCode         %String;                #IMPLIED
+    destinationCity             %String;                #IMPLIED
+    originCountryCode           %String;                #IMPLIED
+    originCountry               %String;                #IMPLIED
+    destinationCountryCode      %String;                #IMPLIED
+    destinationCountry          %String;                #IMPLIED
+    originIATACode              %String;                #IMPLIED
+    destinationIATACode         %String;                #IMPLIED
+    originArea                  %EnumArea;              #IMPLIED
+    destinationArea             %EnumArea;              #IMPLIED
+    bookingClass                %EnumBookingClass;      #IMPLIED
+    serviceClass                %EnumAirServiceClass;   #IMPLIED
+    providerConfirmationNumber  %String;                #IMPLIED
+    fareBasis                   %String;                #IMPLIED
+    equipment                   %String;                #IMPLIED
+    codeShared                  %Boolean;               #IMPLIED
+>
+
+<!ELEMENT FlightSeat EMPTY >
+<!ATTLIST FlightSeat
+    profileId   %String;  #IMPLIED
+    number      %String;  #IMPLIED
+    confirmed   %Boolean; #IMPLIED
+    chargeable  %Boolean; #IMPLIED
+>
+
+<!ELEMENT FlightBaggage EMPTY >
+<!ATTLIST FlightBaggage
+    profileId    %String;  #IMPLIED
+    description  %String;  #IMPLIED
+    weight       %String;  #IMPLIED
+    unit         %String;  #IMPLIED
+    pieces       %String;  #IMPLIED
+    chargeable   %Boolean; #IMPLIED
+>
+
+<!ELEMENT FlightMeal EMPTY >
+<!ATTLIST FlightMeal
+    profileId    %String;  #IMPLIED
+    description  %String;   #IMPLIED
+    confirmed    %Boolean;  #IMPLIED
+>
+
+<!ELEMENT Tickets EMPTY >
+<!ATTLIST Tickets
+    number     %String; #IMPLIED
+    profileId  %String; #REQUIRED
+    freeText   %String; #IMPLIED
+>
+<!-- HighestFare
+-->
+<!ELEMENT HighestFare (Price+)>
+<!-- No attribute -->
+
+<!-- LowestFare
+-->
+<!ELEMENT LowestFare  (Price+)>
+<!-- No attribute -->
+
+<!-- TripDetailsHotel
+    inventoryCode              - the cytric hotel ID of the booked hotel - RE: ^.{1,20}$ - ML: 20
+    name                       - the name of the hotel                   - RE: ^.{1,64}$ - ML: 64
+    street                     - the steet of the hotel address          - RE: ^.{1,128}$ - ML: 128
+    city                       - the city of the hotel address           - RE: ^.{1,96}$ - ML: 96
+    country                    - the country of the hotel address        - RE: ^.{1,64}$ - ML: 64
+    telephone                  - the telephone number of the hotel       - RE: ^.{1,32}$ - ML: 32
+    hotelChain                 - the hotel chain                         - RE: ^[A-Z0-9]{2}$ - ML: 2
+    providerConfirmationNumber - the confirmation number under which the booking is made at the provider - RE: ^.{1,64}$ - ML: 64
+    stars                      - the number of stars of the booked hotel
+    cancellationPolicy         - the cancellation policy of the booked room
+    statusCode                 - the status code of the hotel confirmation
+    planCode                   - the rate plan for this rate
+    roomCode                   - the room type for this rate
+-->
+<!ELEMENT TripDetailsHotel (HotelRate?, GeoLocation?) >
+<!ATTLIST TripDetailsHotel
+    inventoryCode               %String;    #IMPLIED
+    name                        %String;    #IMPLIED
+    street                      %String;    #IMPLIED
+    city                        %String;    #IMPLIED
+    country                     %String;    #IMPLIED
+    telephone                   %String;    #IMPLIED
+    hotelChain                  %String;    #IMPLIED
+    breakfastIncluded           %Tristate;  #REQUIRED
+    roomOccupancy               %Integer;   #REQUIRED
+    providerConfirmationNumber  %String;    #IMPLIED
+    stars                       %Integer;   #IMPLIED
+    cancellationPolicy          %String;    #IMPLIED
+    preferred                   %Boolean;   #IMPLIED
+    isPartOfProgram             %Boolean;   #IMPLIED
+    statusCode                  %String;    #IMPLIED
+    planCode                    %String;    #IMPLIED
+    roomCode                    %String;    #IMPLIED
+    fax                         %String;    #IMPLIED
+    postalcode                  %String;    #IMPLIED
+    email                       %String;    #IMPLIED
+>
+
+<!-- HotelRate
+-->
+<!ELEMENT HotelRate (HotelRateInfo*) >
+
+<!-- HotelRateInfo
+    category -
+    content  -
+-->
+<!ELEMENT HotelRateInfo EMPTY >
+<!ATTLIST HotelRateInfo
+    category    %String;    #IMPLIED
+    content     %String;    #IMPLIED
+>
+
+<!-- TripDetailsEvent
+    inventoryCode              - the cytric hotel ID of the booked hotel - RE: ^.{1,20}$ - ML: 20
+    name                       - event name                              - RE: ^.{1,64}$ - ML: 255
+    hotelname                  - the name of the hotel                   - RE: ^.{1,64}$ - ML: 64
+    street                     - the steet of the hotel address          - RE: ^.{1,128}$ - ML: 128
+    city                       - the city of the hotel address           - RE: ^.{1,96}$ - ML: 96
+    country                    - the country of the hotel address        - RE: ^.{1,64}$ - ML: 64
+    telephone                  - the telephone number of the hotel       - RE: ^.{1,32}$ - ML: 32
+    hotelChain                 - the hotel chain                         - RE: ^[A-Z0-9]{2}$ - ML: 2
+    stars                      - the number of stars of the booked hotel
+    cancellationAllowedUntil   - the date until cancellation is possible
+    cancellationPolicy         - the cancellation policy of the booked room
+-->
+<!ELEMENT TripDetailsEvent EMPTY >
+<!ATTLIST TripDetailsEvent
+    inventoryCode               %String;    #IMPLIED
+    name                        %String;    #REQUIRED
+    hotelName                   %String;    #IMPLIED
+    street                      %String;    #IMPLIED
+    city                        %String;    #IMPLIED
+    country                     %String;    #IMPLIED
+    telephone                   %String;    #IMPLIED
+    hotelChain                  %String;    #IMPLIED
+    stars                       %Integer;   #IMPLIED
+    contact                     %String;    #IMPLIED
+    cancellationAllowedUntil    %DateTime;  #IMPLIED
+    cancellationPolicy          %String;    #IMPLIED
+    fax                         %String;    #IMPLIED
+    postalcode                  %String;    #IMPLIED
+    email                       %String;    #IMPLIED
+>
+<!-- TripDetailsRail
+    railCard - the rail card used
+-->
+<!ELEMENT TripDetailsRail ( RailCards?, RailSubsegments ) >
+<!ATTLIST TripDetailsRail
+    providerConfirmationNumber  %String;              #IMPLIED
+    preferred                   %Boolean;             #IMPLIED
+    ticketType                  %EnumRailTicketType;  #IMPLIED
+>
+
+<!-- RailCards
+-->
+<!ELEMENT RailCards ( RailCard+ ) >
+<!-- no attribute -->
+
+<!-- RailCard
+    type      - the type of rail card used
+    profileId - the profile to which this rail card refers  - RE: ^.{1,256}$ - ML: 256
+-->
+<!ELEMENT RailCard EMPTY >
+<!ATTLIST RailCard
+    type        %String;  #REQUIRED
+    profileId   %String;  #REQUIRED
+>
+
+<!-- RailSubsegments
+-->
+<!ELEMENT RailSubsegments ( RailSubsegment+ ) >
+<!-- no attributes -->
+
+<!-- RailSubsegment
+    direction                  - the direction of the segment
+    origin                     - the origin station of the rail segment                  - RE: ^.{1,1024}$ - ML: 1024
+    destination                - the destination station of the rail segment             - RE: ^.{1,1024}$ - ML: 1024
+    originTrack                - the departure (origin) track
+    destinationTrack           - the arrival (destination) track
+    originCountryCode          - the origin country code of the rail segment
+    destinationCountryCode     - the destination country code of the rail segment
+    originArea                 - the origin area of the rail segment
+    destinationArea            - the destination area of the rail segment
+    originDateAndTime          - the date and optionally the time when the train departs
+    destinationDateAndTime     - the date and optionally the time when the train arrives
+    originIATACode             - the IATA code of the origin
+    destinationIATACode        - the IATA code of the destination
+    serviceClass               - the service class booked on the train
+    providerConfirmationNumber - the confirmation number under which the booking is made at the provider
+    trainNumber                - the number of the train
+    totalPrice                 - the total price of the segment
+-->
+<!ELEMENT RailSubsegment (RailSeat*, GeoLocation*) >
+<!ATTLIST RailSubsegment
+    direction                   %Integer;               #IMPLIED
+    origin                      %String;                #IMPLIED
+    destination                 %String;                #IMPLIED
+    originTrack                 %String;                #IMPLIED
+    destinationTrack            %String;                #IMPLIED
+    originCountryCode           %String;                #IMPLIED
+    destinationCountryCode      %String;                #IMPLIED
+    originArea                  %EnumArea;              #IMPLIED
+    destinationArea             %EnumArea;              #IMPLIED
+    originDateAndTime           %DateTime;              #IMPLIED
+    destinationDateAndTime      %DateTime;              #IMPLIED
+    originIATACode              %String;                #IMPLIED
+    destinationIATACode         %String;                #IMPLIED
+    serviceClass                %EnumRailServiceClass;  #IMPLIED
+    providerConfirmationNumber  %String;                #IMPLIED
+    trainNumber                 %String;                #IMPLIED
+    totalPrice                  %Float;                 #IMPLIED
+>
+
+<!-- RailSeat
+    profileId    -
+    seatNumber   -
+    waggonNumber -
+-->
+<!ELEMENT RailSeat EMPTY >
+<!ATTLIST RailSeat
+    profileId       %String;    #REQUIRED
+    seatNumber      %String;    #IMPLIED
+    waggonNumber    %String;    #IMPLIED
+>
+
+<!-- TripDetailsCar
+    rentalCarCompany           - the name of the rental car company                           - RE: ^.{1,1024}$ - ML: 1024
+    inventoryCode              - the acriss code of the booked rental car segment (e.g. ECMN) - RE: ^[A-Z\*]{4}$ - ML: 4
+    rentAtAirport              - whether the car pick-up station is at an airport
+    telephonePickUpStation     - the telephone number of the pick-up station                  - RE: ^.{1,64}$ - ML: 64
+    telephoneReturnStation     - the telephone number of the return station                   - RE: ^.{1,64}$ - ML: 64
+    telefaxPickUpStation       - the telefax number of the pick-up station                    - RE: ^.{1,64}$ - ML: 64
+    telefaxReturnStation       - the telefax number of the return station                     - RE: ^.{1,64}$ - ML: 64
+    emailPickUpStation         - the email of the pick-up station                                - RE: ^[A-Za-z0-9\_\-\.]+\@([A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,5}$ - ML: 128
+    emailReturnStation            - the email of the return station                                 - RE: ^[A-Za-z0-9\_\-\.]+\@([A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,5}$ - ML: 128
+    providerConfirmationNumber - the confirmation number under which the booking is made at the provider - RE: ^.{1,16}$ - ML: 16
+    statusCode                 - the status code of the car confirmation
+    rateCode                   - the rate code of the car rental
+-->
+<!ELEMENT TripDetailsCar (CarCategory?, CarType?, CarTransmission?, CarMiscellaneous?,CarFees?, GeoLocation*) >
+<!ATTLIST TripDetailsCar
+    rentalCarCompany            %String;    #IMPLIED
+    inventoryCode               %String;    #IMPLIED
+    rentAtAirport               %Boolean;   #IMPLIED
+    telephonePickUpStation      %String;    #IMPLIED
+    telephoneReturnStation      %String;    #IMPLIED
+    telefaxPickUpStation        %String;    #IMPLIED
+    telefaxReturnStation        %String;    #IMPLIED
+    emailPickUpStation          %String;    #IMPLIED
+    emailReturnStation          %String;    #IMPLIED
+    providerConfirmationNumber  %String;    #IMPLIED
+    preferred                   %Boolean;   #IMPLIED
+    statusCode                  %String;    #IMPLIED
+    rateCode                    %String;    #IMPLIED
+>
+
+<!-- CarCategory - the first particle of the ACRISS car classification code, a.k.a. car class
+    code         - the car category code
+    description  - textual description
+-->
+<!ELEMENT CarCategory EMPTY>
+<!ATTLIST CarCategory
+    code         %EnumCarCategory;  #REQUIRED
+    description  %String;           #REQUIRED
+>
+
+<!-- CarType    - the second particle of the ACRISS car classification code
+    code        - the car type code
+    description - textual description
+-->
+<!ELEMENT CarType EMPTY>
+<!ATTLIST CarType
+    code         %EnumCarType;   #REQUIRED
+    description  %String;        #REQUIRED
+>
+
+<!-- CarTransmission - the third particle of the ACRISS car classification code
+    code             - the car transmission code
+    description      - textual description
+-->
+<!ELEMENT CarTransmission EMPTY>
+<!ATTLIST CarTransmission
+    code         %EnumCarTransmission;  #REQUIRED
+    description  %String;               #REQUIRED
+>
+
+<!-- CarMiscellaneous - traditionally Air Conditioning, the fourth particle of the ACRISS car classification code
+    code              - the car air conditioning characteristics code
+    description       - textual description
+-->
+<!ELEMENT CarMiscellaneous EMPTY>
+<!ATTLIST CarMiscellaneous
+    code         %EnumCarMiscellaneous;  #REQUIRED
+    description  %String;                #REQUIRED
+>
+
+<!-- Payments
+-->
+<!ELEMENT CarFees ( CarFee+ ) >
+<!-- no attributes -->
+
+<!-- CarFee - fees for car
+    type         - the car fee type
+-->
+<!ELEMENT CarFee (Price)>
+<!ATTLIST CarFee
+    type         %EnumCarFeeType;  #REQUIRED
+>
+
+<!-- TripDetailsCloud
+    providerName     - the name of the booked appCloud provider
+    providerCode     - the cbs code of this provider
+    applicationName  - the name of the booked appCloud application.
+    applicationCode  - the cbs code of this application
+    serviceName      - the name of the booked appCloud service
+    rateName         - the name of the booked appCloud rate
+    confirmationDate - the date/time when the booked service was confirmed by the provider
+-->
+<!ELEMENT TripDetailsCloud (Requisite*) >
+<!ATTLIST TripDetailsCloud
+    providerName      %String;    #REQUIRED
+    providerCode      %String;    #IMPLIED
+    applicationName   %String;    #REQUIRED
+    applicationCode   %String;    #IMPLIED
+    serviceName       %String;    #IMPLIED
+    rateName          %String;    #IMPLIED
+    confirmationDate  %DateTime;  #IMPLIED
+>
+<!-- Requisite
+    name     - the requisite name
+    code     - the requisite code
+    value    - the value presented as string
+-->
+<!ELEMENT Requisite EMPTY >
+<!ATTLIST Requisite
+    name   %String;   #REQUIRED
+    code   %String;   #REQUIRED
+    value  %String;   #IMPLIED
+>
+
+<!-- TravelPolicyAlert
+    reasonCode        - the user's explanation why travel policy has been violated, in terms of assigned reason code - ML: 64
+    explanation       - the user's free-form explanation why travel policy has been violated - ML: 1024
+    reasonCodeComment - Reason code free-text explanation - ML:1024
+-->
+<!ELEMENT TravelPolicyAlert EMPTY >
+<!ATTLIST TravelPolicyAlert
+    reasonCode         %String;    #IMPLIED
+    explanation        %String;    #IMPLIED
+    reasonCodeComment  %String;    #IMPLIED
+    advanceReasonCode  %String;    #IMPLIED
+    noHotelReasonCode  %String;    #IMPLIED
+    noHotelExplanation %String;    #IMPLIED
+>
+
+<!-- Response
+-->
+<!ELEMENT Response ( Error | Confirmation ) >
+<!-- no attributes -->
+
+<!-- Error
+    code        - the error code
+    description - the description of the error
+-->
+<!ELEMENT Error EMPTY >
+<!ATTLIST Error
+    code        %Integer;   #IMPLIED
+    description %String;    #IMPLIED
+>
+
+<!-- Confirmation
+    externalTripNumber - the trip id within the customer's system - RE: ^.{1,40}$ - ML: 40
+-->
+<!ELEMENT Confirmation EMPTY >
+<!ATTLIST Confirmation
+    externalTripNumber  %String;    #IMPLIED
+>
+
+<!-- GeoLocation
+     longitude - geographical latitude
+     latitude  - geographical longitude
+-->
+<!ELEMENT GeoLocation EMPTY >
+<!ATTLIST GeoLocation
+    name      %String;   #IMPLIED
+    longitude %Double;   #REQUIRED
+    latitude  %Double;   #REQUIRED
+>
+<!-- CarbonEmission
+    amount - ammount of emissions
+    unit   - unit of measurement
+-->
+<!ELEMENT CarbonEmission EMPTY >
+<!ATTLIST CarbonEmission
+    amount   %Float;    #REQUIRED
+    unit     %String;   #REQUIRED
+>

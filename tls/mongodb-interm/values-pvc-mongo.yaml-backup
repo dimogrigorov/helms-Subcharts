@@ -1,0 +1,211 @@
+# Override the name of the chart, which in turn changes the name of the containers, services etc.
+nameOverride: ""
+fullnameOverride: ""
+
+# Override the deployment namespace
+global:
+#  namespaceOverride: ""
+
+replicas: 3
+port: 27017
+
+## Setting this will skip the replicaset and user creation process during bootstrapping
+skipInitialization: false
+
+replicaSetName: rs0
+
+podDisruptionBudget:
+   maxUnavailable: 1
+  # minAvailable: 2
+
+updateStrategy:
+   type: RollingUpdate
+
+auth:
+  enabled: true
+  #existingKeySecret: ""
+  #existingAdminSecret: ""
+  #existingMetricsSecret: ""
+  adminUser: "admin"
+  adminPassword: "secret"
+  mongodbUser: devops
+  mongodbPass: Amadeus06
+  mongodbDatabase: ccbd
+
+  metricsUser: metrics
+  metricsPassword: metrics
+  key: p5QUSTor
+
+## Optionally specify an array of imagePullSecrets.
+## Secrets must be manually created in the namespace.
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+##
+imagePullSecrets:
+   - nexus
+#   - myRegistrKeySecretName
+
+# Specs for the Docker image for the init container that establishes the replica set
+installImage:
+  repository: nexus.secure.ifao.net:9343/unguiculus/mongodb-install
+  tag: 0.7
+  pullPolicy: IfNotPresent
+
+# Specs for the Docker image for the copyConfig init container
+copyConfigImage:
+  repository: nexus.secure.ifao.net:9343/busybox
+  tag: 1.30.1
+  pullPolicy: IfNotPresent
+
+# Specs for the MongoDB image
+image:
+  repository: nexus.secure.ifao.net:9343/mongo
+  tag: 4.4.1
+  pullPolicy: IfNotPresent
+
+# Additional environment variables to be set in the container
+extraVars: {}
+# - name: TCMALLOC_AGGRESSIVE_DECOMMIT
+#   value: "true"
+
+# Prometheus Metrics Exporter
+metrics:
+  enabled: true
+  image:
+    repository: nexus.secure.ifao.net:9343/bitnami/mongodb-exporter
+    tag: 0.10.0-debian-9-r71
+    pullPolicy: IfNotPresent
+  port: 9216
+  path: "/metrics"
+  socketTimeout: 3s
+  syncTimeout: 1m
+  prometheusServiceDiscovery: true
+  resources: 
+      limits:
+        cpu: 200m
+        memory: 500Mi
+      requests:
+        cpu: 100m
+        memory: 100Mi
+  securityContext:
+    enabled: true
+    #runAsUser: 1001
+
+# Annotations to be added to MongoDB pods
+podAnnotations: {}
+
+securityContext:
+  enabled: true
+  runAsUser: 1000600000
+  fsGroup: 1000600000
+  runAsNonRoot: true
+
+init:
+  resources: {}
+  timeout: 900
+
+  resources:
+   limits:
+     cpu: 3
+     memory: 8Gi
+   requests:
+     cpu: 200m
+     memory: 512Mi
+  #
+## Node selector
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+nodeSelector: {}
+
+affinity: {}
+
+tolerations: []
+
+# Additional containers to add to the StatefulSet
+extraContainers: []
+#  - name: mongo-sidecar
+#    image: stefanprodan/mgob:latest
+#    ports:
+#    - name: sidecar-http
+#      containerPort: 8090
+#    volumeMounts:
+#    - mountPath: /config/test1.yml
+#      name: mgob-config
+#      subPath: test1.yml
+#    - name: mgob-storage
+#      mountPath: /storage
+
+extraLabels: {}
+
+## Additional volumes which can be used by sidecar containers
+extraVolumes: []
+# - name: mgob-config
+#   configMap:
+#     name: mgob-config
+
+priorityClassName: ""
+
+persistentVolume:
+  enabled: true
+  ## mongodb-replicaset data Persistent Volume Storage Class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 50Gi
+  annotations: {}
+
+# Annotations to be added to the secrets
+secretAnnotations: {}
+
+# Annotations to be added to the service
+serviceAnnotations: {}
+
+# Annotations to be added to the statefulSet
+statefulSetAnnotations: {}
+
+terminationGracePeriodSeconds: 30
+
+tls:
+  # Enable or disable MongoDB TLS support
+  enabled: true
+  # Set the SSL operation mode (disabled|allowSSL|preferSSL|requireTLS)
+  mode: requireTLS
+  # Please generate your own TLS CA by generating it via:
+  # $ openssl genrsa -out ca.key 2048
+  # $ openssl req -x509 -new -nodes -key ca.key -days 10000 -out ca.crt -subj "/CN=mydomain.com"
+  # After that you can base64 encode it and paste it here:
+  # $ cat ca.key | base64 -w0
+  cacert: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM3RENDQWRTZ0F3SUJBZ0lDRUFBd0RRWUpLb1pJaHZjTkFRRUxCUUF3RWpFUU1BNEdBMVVFQXd3SFVtOXYKZEMxRFFUQWVGdzB5TVRBMk1EZ3hOREUwTWpKYUZ3MHpNVEEyTURZeE5ERTBNakphTUU0eEN6QUpCZ05WQkFZVApBa0pITVFzd0NRWURWUVFJREFKVFJqRU5NQXNHQTFVRUNnd0VhVVpCVHpFak1DRUdBMVVFQXd3YWJXOXVaMjlrCllpMXlaWEJzYVdOaGMyVjBMbTF2Ym1kdlpHSXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUsKQW9JQkFRQ3JCUjhWVlZLRkFRZUY1R1ZCTUlPeU9nYjRVMlJFdFVhU2VtbGNSYVo5cEl0bmEwb3BYQmNlSS9MawpydVlNczNYUWthRVd0bXJ2cVdrT052MzNFa0xoYXhSN2lNRnk4UHdKUTNHbW9hTE1MQjdMWEFodGlYcXdUSmJWCjFsZ01kVTVIbGxJcWJaVWllZk9TTVFFS2EvZ3hrQUlVaFhHc2FTWE03OFpTT0FIbDVtNHA3NkhvNzBBVE9mTCsKek5BVHZFTExYZUZXUmVndUlYbjh5VG1sb2pEOWkxaG0zRDN2a1VVdzNCbE5JZkpNYk9DY3R5QWwxSnJ3dUt0VgpnVUxjRFZnWU9NOXlqU3hEcjdxOFFPeEZobFVhUWVoWm90eG9oRjE4VmR4NjluS0Z1TDdtS2hlNUNTNUR6aFVFCjYzVis3MDZ0QUo2UjFKOVFhNTRvTGxVV1I5LzFBZ01CQUFHakVEQU9NQXdHQTFVZEV3UUZNQU1CQWY4d0RRWUoKS29aSWh2Y05BUUVMQlFBRGdnRUJBS29BbW9pdFMrS0xMVHZ3V2RWblRpSUg3NS9xT1JsbFl2ZG04MVN5bE9yQgp3aEExS3lpanVFcjJZdzhTV2N4RWpXY2xTSVVHTHhTb3hEOEc4cEoxNlZtTXdoWnlydEEwbWtKZUpmMFU4YytwCjBSR0JKdkY5VWxaU1NmUmxabE5Ka2ZQeklMcjRDMFEyWnZVV3gzRzU5citmQTJ3M0pSczJkSzV4VGx4eUFyMWoKMzdhbER6c1JxWXV5dWQxN21OZFJ0VU0yMG5FSjVoTUgrOHNvL1NucXhoYjJmbHM5U0phQ3NuaWVFQXBiWkpycQpYNDVZWG9rMXl1U3JnRTlxT3BLbkpZZjF0dFNSVmpmUEl6aS9qZktyU1RUa2o1cW91VG9QNFkwQkh1eXNhekdCCko5dXYxME1OY1cvU0c2cU1ybDFraWx4VU9sN2lVM3NVVyt0Y1h6eXdxVEU9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN3akNDQWFxZ0F3SUJBZ0lVWWNtU245Rk56TjY5MkpmZ3prWTRmbVozOEFVd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0VqRVFNQTRHQTFVRUF3d0hVbTl2ZEMxRFFUQWVGdzB5TVRBMk1EZ3hOREUwTWpKYUZ3MHpNVEEyTURZeApOREUwTWpKYU1CSXhFREFPQmdOVkJBTU1CMUp2YjNRdFEwRXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCCkR3QXdnZ0VLQW9JQkFRRExPblJvYmhGY2N4V2E4WTVuOE9CY2k4Yzh2aUtuRGIwY1oxYnJKaWpIYmNBMXNranUKeEFwOHlVWHd4UVdxMkF1bDZ5NERHZCtBdDU4RzI3MGZ5MFRPWEQrUHE4MWZmTFlqNGc0SFgrczcwS1MxRnh0NQpUeGo3RnJvbVlUbldlR0R3a3VsYXkydENZYTEzTWJ0TWlMMVRyWGNUWEZDb2F4MVdET1dJZ0hSaTdWUWQ0cm9RCmZTeGNpeTZVdEpxelg4RDFDcVVrNXdRTk84SWovakxXaHlPbmw5dW1BMTBadTRjOFRFOXJSQXUvSnc2VUxKM3oKcmdxb01sNTRDS3QxdmxNNnNhdEU1N3BON1oySEZBQW9FeDRRVWxTcEtIYzRuVTZPdXpRbEMxdkxkUWZrN2FraQpYVE5mV1VVSGJWTjRxaC9wQitWazFDRWVTRTM1cXVuc2lwM1RBZ01CQUFHakVEQU9NQXdHQTFVZEV3UUZNQU1CCkFmOHdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBS0ZORGpFMUpaN3laRzFubGQ3dno4T1dBYjJYQXRTMU5LaTEKL0VPVWFvR1MzTmR6S3NXR29iVlJLeXlGMWl0ZEpVcGRGbHJiQXVVclNoMzcwTEJrbVJ2dkt6ekFDaE5TRkhlYwo1RGllK0Q1dC9FY2lIcmJKVnZpbGo4MGhTVTFQNWRneXhIQTg4eTZKZTRYU2RGZGl2ZnBwWURHVFFZZEsyYTRWCm8wMkxnOEVOR2pMRlhuVmxFdWdCaHlvYVJ6WnV1YjJPTTFTSnV6dVFaRjZSWllPNWpTRHZDRlJYT0N5TFR5alkKRyttbjFSS3ZTOFliWElNZXVVWEhKSEVicWdFSkJnMFBVUktGbzZPL1ErZDV1cmp6YzBvVWNFeXdYc0lyemVobgpQYVhpRlE3R2EzNFZqYWtiZktMYVJOQTRLWExDdWsxcFNUeENKeWV2bUZZaWxKSzNwVlk9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  cakey: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBcXdVZkZWVlNoUUVIaGVSbFFUQ0Rzam9HK0ZOa1JMVkdrbnBwWEVXbWZhU0xaMnRLCktWd1hIaVB5NUs3bURMTjEwSkdoRnJacTc2bHBEamI5OXhKQzRXc1VlNGpCY3ZEOENVTnhwcUdpekN3ZXkxd0kKYllsNnNFeVcxZFpZREhWT1I1WlNLbTJWSW5uemtqRUJDbXY0TVpBQ0ZJVnhyR2tsek8vR1VqZ0I1ZVp1S2UraAo2TzlBRXpueS9zelFFN3hDeTEzaFZrWG9MaUY1L01rNXBhSXcvWXRZWnR3OTc1RkZNTndaVFNIeVRHemduTGNnCkpkU2E4TGlyVllGQzNBMVlHRGpQY28wc1E2KzZ2RURzUllaVkdrSG9XYUxjYUlSZGZGWGNldlp5aGJpKzVpb1gKdVFrdVE4NFZCT3QxZnU5T3JRQ2VrZFNmVUd1ZUtDNVZGa2ZmOVFJREFRQUJBb0lCQUM0QzByb0ttb2p1SGZnSAoycllQTjE5Yi9VUVNLNGZRdll2ckl5MlFENXIrQ2dObytpcm1lOUhBR2prc1ZQaFZ6L3l0TVluS3lqcHdlYk01CldGcUFyejIyY1d4Sy9zRE4xUUVwQkFxd3NmdjhZc3lUbGpEaUxBQUNteElzK01OaFRBNDJneVNuRnRpUHR0ZysKRnVtVzRzOXl6eHgyU243NFN4TTM3ME52amhNcjJ4THRacGNBQitmSVk5MDFZU2N3TU5tdjlaY0ZnWHJWYll2NwpXK3RLRk1TTUsvK1cvaGVjMXRLV2JFL3NEMGtmaU1DNno2V2xQQXpmTHE3OHNOR3AzN2l6NFVkVDZ0aFFRcE50CmF5dTJzZm5KSjI1UnRaTWlMbnlhbFd4VlVHVVBwYzJkL3EzZlZMZWQwdGR5bSszOWhIaXp3d0tKVjhySzdyWGUKSVVhOTdvRUNnWUVBMTk2QVpYYVd3Ynl2dVErUnJuYlI1dFVXeFJyYTUzNUVSYW1PMExkUDh0Q01kUG5ZT2hMZApsRUgxUG9QcHRjMWpvb3JuTmZ6WVMyZUxraFQyRHRLeitjZUhZanE0c0lSamZvQjZXb01hQkk3SnVXNGJiYVBDCkFWa2hTNy81VnFhWXBtZnBKL2taRjBHNW1uSlpiTlBMNXhJd2I1bkVLK2tFT3pTd05rWjA4YXNDZ1lFQXl0QXcKbTZDMTVWNHpvOGpFTndqcThINWxqWDdiakJDaWlyalpNUlRMK0VXYk9MNUhhc3Nlem5HNnU1Q2w1VTZBWXp3SwpONzVKYVVxRjUxVkpPME1KcXZBNzk3M0xaRmJVNTU3NFRZL0E2RHVnbGkvdElDM2hkeG8rL1ZsRHh1MytCWHZnCkhvREhvWmZoT0VvREhnZ255R0sxVEdGWjhRVlU1WDZ3YlVLWUZOOENnWUE3bm1Qdm9kVDVKTmVUVU0xM1ZiR2IKQXZjSzhPUE1VMzhmamppM1JDbDhja1NZZWZoUjhhdm9xbDdGS1VGK3lIN2dBV1RoOERiOGZGaDd1L1pKR2NCRApGK3c0SU9lcE9LY1I1UUhseFplRjhybWIwT0VhWXNQT0E0UENtLzZOQSszYzU0M3BVRTZ4c2FGRkdwZkFDcTZoCjN0QXB3bG4vbHBkb2txQ29ITVZuaVFLQmdHZDgzaUM3VzdXRFlQUkZBS0pZZ1pGZjNhL2F1R3A3SG9XTWx2N3QKYnJycndhMnRva0dERGVBbnRqSDVPRDJPMWdKTTQ2WFlDaHVZOUVTN2h4ZWZPSEtxRE45NFVDMk9CU3QvT1pKUwpOUXdMU1FENXlaU3U5S3BTa1N1emZkc25HNFJ1MWtpYVM4TlAvWk04YU9UTklvZWtub0F2K0xYOGszcGJMK2xBCm50dWZBb0dCQU1VbGJqeU5ZRVpoOVhuTkwyamR5SzFjY3ppUmVHU2hwY3BZdWhsQ0Y1c1BMMGRHR1JDYmhUZjkKUHRlWTl5Q1hydnFMVmMvSDdiTlRabjFMZmQ5RWlHRkowQ0QwUVJ0ZGMyZDVVdXNWK0lIZjdueGxoU1JIaGlPSword2hmSW5aU2M1WWIzUmFwRExURkpOaTdPeHZ1ai91V0UyMjJMV08vUE1SaVlhWmpzbVJZCi0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==
+
+# Entries for the MongoDB config file
+configmap: {}
+
+# Javascript code to execute on each replica at initContainer time
+# This is the recommended way to create indexes on replicasets.
+# Below is an example that creates indexes in foreground on each replica in standalone mode.
+# ref: https://docs.mongodb.com/manual/tutorial/build-indexes-on-replica-sets/
+# initMongodStandalone: |+
+#   db = db.getSiblingDB("mydb")
+#   db.my_users.createIndex({email: 1})
+initMongodStandalone: ""
+
+# Readiness probe
+readinessProbe:
+  initialDelaySeconds: 5
+  timeoutSeconds: 1
+  failureThreshold: 3
+  periodSeconds: 10
+  successThreshold: 1
+
+# Liveness probe
+livenessProbe:
+  initialDelaySeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+  periodSeconds: 10
+  souccessThreshold: 1

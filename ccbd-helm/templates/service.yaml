@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ccbd-master.fullname" . }}
+  labels:
+    {{- include "ccbd-master.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8080
+      protocol: TCP
+      name: ccbd-web
+  selector:
+    {{- include "ccbd-master.selectorLabels" . | nindent 4 }}

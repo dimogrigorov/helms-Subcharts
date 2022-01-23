@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mongo-express
+  name: mongo-express
+  namespace: mongodb
+spec:
+  selector:
+    matchLabels:
+      app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      containers:
+      - env:
+        - name: ME_CONFIG_MONGODB_SERVER
+          value: "mongodb-proxy.mongodb"
+        - name: ME_CONFIG_MONGODB_ENABLE_ADMIN
+          value: "true"
+        - name: ME_CONFIG_BASICAUTH_USERNAME
+          value: devops
+        - name: ME_CONFIG_BASICAUTH_PASSWORD
+          value: Amadeus06
+        - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+          value: admin
+        - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+          value: secret 
+        - name: ME_CONFIG_MONGODB_CA_FILE
+          value: /opt/truststore/tls.crt
+        - name: ME_CONFIG_MONGODB_SSLVALIDATE
+          value: "false"
+        - name: ME_CONFIG_MONGODB_SSL
+          value: "true"
+        image: nexus.secure.ifao.net:9343/mongo-express:0.54
+        imagePullPolicy: Always
+        name: mongo-express
+        ports:
+        - containerPort: 8081
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 500Mi
+        volumeMounts:
+        - name: ca
+          mountPath: /opt/truststore/
+      restartPolicy: Always
+      imagePullSecrets:
+      - name: nexus
+      volumes:
+        - name: ca
+          secret:
+             defaultMode: 256
+             secretName: mongodb-replicaset-ca
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mongo-express
+  name: mongo-express
+  namespace: mongodb
+spec:
+  ports:
+  - name: http
+    port: 8081
+    protocol: TCP
+  selector:
+    app: mongo-express
+  type: LoadBalancer
